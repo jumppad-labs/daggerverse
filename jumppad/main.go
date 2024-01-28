@@ -8,6 +8,7 @@ import (
 
 type Jumppad struct {
 	binary *File
+	cache  *CacheVolume
 }
 
 // WithVersion installs a specific version of jumppad from GitHub releases
@@ -37,6 +38,13 @@ func (m *Jumppad) WithVersion(version, architecture string) *Jumppad {
 // WithFile installs a specific version of jumppad from the provided file
 func (m *Jumppad) WithFile(file *File) *Jumppad {
 	m.binary = file
+	return m
+}
+
+// WithCache uses a specifica cache volume for docker or podman server
+func (m *Jumppad) WithCache(cache *CacheVolume) *Jumppad {
+	m.cache = cache
+
 	return m
 }
 
@@ -91,6 +99,10 @@ func (m *Jumppad) dockerBase(ctx context.Context, architecture string) *Containe
 		WithExec([]string{"apt", "install", "-y", "git"}).
 		WithEnvVariable("DOCKER_TLS_CERTDIR", "") // disable TLS
 
+	if m.cache != nil {
+		testBase = testBase.WithMountedCache("/var/lib/docker", m.cache)
+	}
+
 	return testBase.
 		WithNewFile("/scripts/entrypoint.sh", ContainerWithNewFileOpts{Contents: dnidEntrypoint}).
 		WithExec([]string{"chmod", "+x", "/scripts/entrypoint.sh"})
@@ -120,6 +132,10 @@ func (m *Jumppad) podmanBase(ctx context.Context, architecture string) *Containe
 		WithExec([]string{"dnf", "install", "-y", "git"}).
 		WithEnvVariable("DOCKER_TLS_CERTDIR", "").                       // disable TLS
 		WithEnvVariable("DOCKER_HOST", "unix:///run/podman/podman.sock") // add the podman sock
+
+	if m.cache != nil {
+		testBase = testBase.WithMountedCache("/var/lib/containers", m.cache)
+	}
 
 	return testBase.
 		WithNewFile("/etc/containers/containers.conf", ContainerWithNewFileOpts{Contents: podmanConf}).

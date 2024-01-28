@@ -21,8 +21,6 @@ a Podman engine. The Podman engine is started using Podman-in-Docker (PinD)
 inside the Dagger engine.
 
 ```shell
-
-```shell
 dagger call --focus=false test-blueprint-with-binary \
   --binary $(which jumppad) \
   --src ./examples/container
