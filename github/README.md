@@ -29,19 +29,23 @@ if err != nil {
 }
 ```
 
-## BumpVersionWithPRTag
+## NextVerstionFromAssociatedPRLabel
 
-If the referenced PR contains any labels "major", "minor", or "patch", this function will increment
-the largest semantic version tag in the repository by the corresponding label. If no labels are found
-an empty string will be returned.
+If there is an associated open PR for the commit SHA and that PR contains any labels "major", 
+"minor", or "patch", this function will increment the largest semantic version tag in the 
+repository by the corresponding label. If no labels are found an empty string will be returned.
+
+For example: If the latest tag is "v1.2.3" and the PR contains the label "minor", the new tag will be "v1.3.0".
+
+If there are multiple PRs associated with the commit, the highest label from any matching PR will be used.
 
 Parameters:
 - `owner` (str): The owner of the repository.
 - `repo` (str): The name of the repository.
-- `pr` (int): The pull request number.
+- `sha` (string): Commit SHA associated with a PR.
 
 Returns:
-- `string`: The new semantic version tag, empty if no pr labels are found.
+- `string`: The new semantic version tag, empty if no pr labels are foun or the commit SHA.
 
 Example:
 
