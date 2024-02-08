@@ -17,13 +17,17 @@ Parameters:
 - `tag` (str): The tag to create and to use for the release.
 - `sha` (str): The commit SHA to create the release from.
 - `files` (Directory): The list of files to upload and associate with the release.
+- `token` (Secret, optional): The GitHub token to use for authentication, can also be set using `WithToken`.
 
 Example:
 
 ```go
 files := dag.Directory()
 
-err := dag.Github.CreateRelease("jumppad-labs", "daggerverse", "0.1.2", "3fdsdfdf3434", files)
+err := dag.Github().
+  WithToken("<your token>").
+  CreateRelease("jumppad-labs", "daggerverse", "0.1.2", "3fdsdfdf3434", files)
+
 if err != nil {
     log.Fatal(err)
 }
@@ -43,6 +47,7 @@ Parameters:
 - `owner` (str): The owner of the repository.
 - `repo` (str): The name of the repository.
 - `sha` (string): Commit SHA associated with a PR.
+- `token` (Secret, optional): The GitHub token to use for authentication, can also be set using `WithToken`.
 
 Returns:
 - `string`: The new semantic version tag, empty if no pr labels are foun or the commit SHA.
@@ -50,8 +55,15 @@ Returns:
 Example:
 
 ```go
-newTag, err := dag.Github.BumpVersionWithPRTag("jumppad-labs", "daggerverse", 123)
+newTag, err := dag.Github().
+  WithToken("<your token>").
+  BumpVersionWithPRTag("jumppad-labs", "daggerverse", 123)
+
 if err != nil {
     log.Fatal(err)
 }
 ```
+
+## WithToken
+
+Sets the Github token to use for authentication.

@@ -26,7 +26,13 @@ func (m *Github) WithToken(token string) *Github {
 
 // TagRepository creates a tag for a repository with the given commit sha and an optional list of files
 // note: only the top level files in the directory will be uploaded, this function does not support subdirectories
-func (m *Github) CreateRelease(ctx context.Context, owner, repo, tag, sha string, files Optional[*Directory]) error {
+func (m *Github) CreateRelease(ctx context.Context, owner, repo, tag, sha string, files Optional[*Directory], token Optional[*Secret]) error {
+	t, ok := token.Get()
+	if ok {
+		tkn, _ := t.Plaintext(ctx)
+		m.token = tkn
+	}
+
 	client := m.getClient(ctx)
 
 	rel, _, err := client.Repositories.CreateRelease(ctx, owner, repo, &github.RepositoryRelease{
@@ -79,7 +85,13 @@ func (m *Github) CreateRelease(ctx context.Context, owner, repo, tag, sha string
 // i.e. if the SHA has an associated PR with a label of `major` and the current tag is `1.1.2` the next version will be `2.0.0`
 // if the PR has a tag of `minor` and the current tag is `1.1.2` the next version will be `1.2.0`
 // if the PR has a tag of `patch` and the current tag is `1.1.2` the next version will be `1.1.3`
-func (m *Github) NextVersionFromAssociatedPRLabel(ctx context.Context, owner, repo, sha string) (string, error) {
+func (m *Github) NextVersionFromAssociatedPRLabel(ctx context.Context, owner, repo, sha string, token Optional[*Secret]) (string, error) {
+	t, ok := token.Get()
+	if ok {
+		tkn, _ := t.Plaintext(ctx)
+		m.token = tkn
+	}
+
 	client := m.getClient(ctx)
 
 	// find any associated PRs with the commit
@@ -177,14 +189,14 @@ func (m *Github) FTestCreateRelease(ctx context.Context, token *Secret, files Op
 
 	m.token, _ = token.Plaintext(ctx)
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", OptEmpty[*Secret]())
 	if err != nil {
 		return err
 	}
 
 	log.Debug("new version", "version", v)
 
-	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", files)
+	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", files, OptEmpty[*Secret]())
 }
 
 // example: dagger call ftest-bump-version-with-prtag --token=GITHUB_TOKEN
@@ -194,7 +206,7 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 
 	m.token, _ = token.Plaintext(ctx)
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", OptEmpty[*Secret]())
 	if err != nil {
 		return v, err
 	}
