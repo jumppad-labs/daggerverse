@@ -54,10 +54,10 @@ func (m *Jumppad) TestBlueprint(
 	ctx context.Context,
 	src *Directory,
 	// +optional
-	// default: amd64
+	// +default=amd64
 	architecture,
 	// +optional
-	// default: docker
+	// +default=docker
 	runtime string) error {
 	var testBase *Container
 	if runtime == "docker" {
@@ -86,10 +86,10 @@ func (m *Jumppad) TestBlueprintWithVersion(
 	src *Directory,
 	version string,
 	// +optional
-	// default: amd64
+	// +default=amd64
 	architecture string,
 	// +optional
-	// default: docker
+	// +default=docker
 	runtime string,
 ) error {
 	// fetch the binary
@@ -102,10 +102,10 @@ func (m *Jumppad) TestBlueprintWithBinary(
 	src *Directory,
 	binary *File,
 	// +optional
-	// default: amd64
+	// +default=amd64
 	architecture string,
 	// +optional
-	// default: docker
+	// +default=docker
 	runtime string,
 ) error {
 	m.WithFile(binary)
