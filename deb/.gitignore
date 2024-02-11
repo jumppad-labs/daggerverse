@@ -1,0 +1,6 @@
+/dagger.gen.go
+/internal/querybuilder/
+/querybuilder/
+/example_package_contents/bin
+/example_app/bin
+*.deb
