@@ -7,8 +7,8 @@ import (
 )
 
 type Jumppad struct {
-	binary *File
-	cache  *CacheVolume
+	Binary *File
+	Cache  *CacheVolume
 }
 
 // WithVersion installs a specific version of jumppad from GitHub releases
@@ -21,7 +21,7 @@ func (m *Jumppad) WithVersion(version, architecture string) *Jumppad {
 		jumppadArch = "x86_64"
 	}
 
-	m.binary = dag.Container().
+	m.Binary = dag.Container().
 		From("alpine:latest").
 		WithWorkdir("/setup").
 		WithExec([]string{
@@ -37,31 +37,36 @@ func (m *Jumppad) WithVersion(version, architecture string) *Jumppad {
 
 // WithFile installs a specific version of jumppad from the provided file
 func (m *Jumppad) WithFile(file *File) *Jumppad {
-	m.binary = file
+	m.Binary = file
 	return m
 }
 
 // WithCache uses a specifica cache volume for docker or podman server
 func (m *Jumppad) WithCache(cache *CacheVolume) *Jumppad {
-	m.cache = cache
+	m.Cache = cache
 
 	return m
 }
 
 // TestBlueprint tests a blueprint using either docker or podman,
 // this method is designed to be used with the Dagger API not the CLI
-func (m *Jumppad) TestBlueprint(ctx context.Context, src *Directory, architecture, runtime Optional[string]) error {
-	arch := architecture.GetOr("amd64")
-	run := runtime.GetOr("docker")
-
+func (m *Jumppad) TestBlueprint(
+	ctx context.Context,
+	src *Directory,
+	// +optional
+	// default: amd64
+	architecture,
+	// +optional
+	// default: docker
+	runtime string) error {
 	var testBase *Container
-	if run == "docker" {
-		testBase = m.dockerBase(ctx, arch)
+	if runtime == "docker" {
+		testBase = m.dockerBase(ctx, architecture)
 	} else {
-		testBase = m.podmanBase(ctx, arch)
+		testBase = m.podmanBase(ctx, architecture)
 	}
 
-	testBase = testBase.WithFile("/usr/local/bin/jumppad", m.binary)
+	testBase = testBase.WithFile("/usr/local/bin/jumppad", m.Binary)
 
 	_, err := testBase.
 		WithEntrypoint([]string{"/scripts/entrypoint.sh"}).
@@ -76,15 +81,33 @@ func (m *Jumppad) TestBlueprint(ctx context.Context, src *Directory, architectur
 // TestBlueprintWithVersion tests a blueprint with a specific version of jumppad installed from GitHub releases
 //
 // example usage: "dagger call test --src ./examples/multiple_k3s_clusters --version v0.5.59"
-func (m *Jumppad) TestBlueprintWithVersion(ctx context.Context, src *Directory, version string, architecture, runtime Optional[string]) error {
-	arch := architecture.GetOr("amd64")
-
+func (m *Jumppad) TestBlueprintWithVersion(
+	ctx context.Context,
+	src *Directory,
+	version string,
+	// +optional
+	// default: amd64
+	architecture string,
+	// +optional
+	// default: docker
+	runtime string,
+) error {
 	// fetch the binary
-	m.WithVersion(version, arch)
+	m.WithVersion(version, architecture)
 	return m.TestBlueprint(ctx, src, architecture, runtime)
 }
 
-func (m *Jumppad) TestBlueprintWithBinary(ctx context.Context, src *Directory, binary *File, architecture, runtime Optional[string]) error {
+func (m *Jumppad) TestBlueprintWithBinary(
+	ctx context.Context,
+	src *Directory,
+	binary *File,
+	// +optional
+	// default: amd64
+	architecture string,
+	// +optional
+	// default: docker
+	runtime string,
+) error {
 	m.WithFile(binary)
 	return m.TestBlueprint(ctx, src, architecture, runtime)
 }
@@ -99,8 +122,8 @@ func (m *Jumppad) dockerBase(ctx context.Context, architecture string) *Containe
 		WithExec([]string{"apt", "install", "-y", "git"}).
 		WithEnvVariable("DOCKER_TLS_CERTDIR", "") // disable TLS
 
-	if m.cache != nil {
-		testBase = testBase.WithMountedCache("/var/lib/docker", m.cache)
+	if m.Cache != nil {
+		testBase = testBase.WithMountedCache("/var/lib/docker", m.Cache)
 	}
 
 	return testBase.
@@ -133,8 +156,8 @@ func (m *Jumppad) podmanBase(ctx context.Context, architecture string) *Containe
 		WithEnvVariable("DOCKER_TLS_CERTDIR", "").                       // disable TLS
 		WithEnvVariable("DOCKER_HOST", "unix:///run/podman/podman.sock") // add the podman sock
 
-	if m.cache != nil {
-		testBase = testBase.WithMountedCache("/var/lib/containers", m.cache)
+	if m.Cache != nil {
+		testBase = testBase.WithMountedCache("/var/lib/containers", m.Cache)
 	}
 
 	return testBase.

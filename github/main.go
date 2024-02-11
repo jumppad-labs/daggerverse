@@ -14,25 +14,27 @@ import (
 )
 
 type Github struct {
-	token string
+	Token string
 }
 
 // WithToken sets the GithHub token for any opeations that require it
 func (m *Github) WithToken(token string) *Github {
-	m.token = token
+	m.Token = token
 
 	return m
 }
 
 // TagRepository creates a tag for a repository with the given commit sha and an optional list of files
 // note: only the top level files in the directory will be uploaded, this function does not support subdirectories
-func (m *Github) CreateRelease(ctx context.Context, owner, repo, tag, sha string, files Optional[*Directory], token Optional[*Secret]) error {
-	t, ok := token.Get()
-	if ok {
-		tkn, _ := t.Plaintext(ctx)
-		m.token = tkn
-	}
-
+func (m *Github) CreateRelease(
+	ctx context.Context,
+	owner,
+	repo,
+	tag,
+	sha string,
+	// +optional
+	files *Directory,
+) error {
 	client := m.getClient(ctx)
 
 	rel, _, err := client.Repositories.CreateRelease(ctx, owner, repo, &github.RepositoryRelease{
@@ -47,10 +49,9 @@ func (m *Github) CreateRelease(ctx context.Context, owner, repo, tag, sha string
 	log.Debug("Created release", "release", *rel.ID)
 
 	// if there are files to upload, upload them to the release
-	fd, ok := files.Get()
-	if ok {
+	if files != nil {
 		assets := os.TempDir()
-		fd.Export(ctx, assets)
+		files.Export(ctx, assets)
 
 		// get the files in the directory
 		fs, err := os.ReadDir(assets)
@@ -85,13 +86,12 @@ func (m *Github) CreateRelease(ctx context.Context, owner, repo, tag, sha string
 // i.e. if the SHA has an associated PR with a label of `major` and the current tag is `1.1.2` the next version will be `2.0.0`
 // if the PR has a tag of `minor` and the current tag is `1.1.2` the next version will be `1.2.0`
 // if the PR has a tag of `patch` and the current tag is `1.1.2` the next version will be `1.1.3`
-func (m *Github) NextVersionFromAssociatedPRLabel(ctx context.Context, owner, repo, sha string, token Optional[*Secret]) (string, error) {
-	t, ok := token.Get()
-	if ok {
-		tkn, _ := t.Plaintext(ctx)
-		m.token = tkn
-	}
-
+func (m *Github) NextVersionFromAssociatedPRLabel(
+	ctx context.Context,
+	owner,
+	repo,
+	sha string,
+) (string, error) {
 	client := m.getClient(ctx)
 
 	// find any associated PRs with the commit
@@ -174,7 +174,7 @@ func (m *Github) NextVersionFromAssociatedPRLabel(ctx context.Context, owner, re
 
 func (m *Github) getClient(ctx context.Context) *github.Client {
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: m.token},
+		&oauth2.Token{AccessToken: m.Token},
 	)
 
 	tc := oauth2.NewClient(ctx, ts)
@@ -183,20 +183,25 @@ func (m *Github) getClient(ctx context.Context) *github.Client {
 }
 
 // example: dagger call ftest-create-release --token=GITHUB_TOKEN --files=./testfiles
-func (m *Github) FTestCreateRelease(ctx context.Context, token *Secret, files Optional[*Directory]) error {
+func (m *Github) FTestCreateRelease(
+	ctx context.Context,
+	token *Secret,
+	// +optional
+	files *Directory,
+) error {
 	// enable debug logging
 	log.SetLevel(log.DebugLevel)
 
-	m.token, _ = token.Plaintext(ctx)
+	m.Token, _ = token.Plaintext(ctx)
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", OptEmpty[*Secret]())
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
 	if err != nil {
 		return err
 	}
 
 	log.Debug("new version", "version", v)
 
-	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", files, OptEmpty[*Secret]())
+	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", files)
 }
 
 // example: dagger call ftest-bump-version-with-prtag --token=GITHUB_TOKEN
@@ -204,9 +209,9 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 	// enable debug logging
 	log.SetLevel(log.DebugLevel)
 
-	m.token, _ = token.Plaintext(ctx)
+	m.Token, _ = token.Plaintext(ctx)
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", OptEmpty[*Secret]())
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
 	if err != nil {
 		return v, err
 	}
