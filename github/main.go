@@ -35,7 +35,10 @@ func (m *Github) CreateRelease(
 	// +optional
 	files *Directory,
 ) error {
-	client := m.getClient(ctx)
+	client, err := m.getClient(ctx)
+	if err != nil {
+		return err
+	}
 
 	rel, _, err := client.Repositories.CreateRelease(ctx, owner, repo, &github.RepositoryRelease{
 		TagName:         &tag,
@@ -92,7 +95,10 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 	repo,
 	sha string,
 ) (string, error) {
-	client := m.getClient(ctx)
+	client, err := m.getClient(ctx)
+	if err != nil {
+		return "", err
+	}
 
 	// find any associated PRs with the commit
 	prs, _, err := client.PullRequests.ListPullRequestsWithCommit(ctx, owner, repo, sha, nil)
@@ -172,14 +178,19 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 	return "", nil
 }
 
-func (m *Github) getClient(ctx context.Context) *github.Client {
+func (m *Github) getClient(ctx context.Context) (*github.Client, error) {
+	if m.Token == "" {
+		log.Error("GitHub token not set")
+		return nil, fmt.Errorf("GitHub token not set, please use the WithToken function to set the token")
+	}
+
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: m.Token},
 	)
 
 	tc := oauth2.NewClient(ctx, ts)
 
-	return github.NewClient(tc)
+	return github.NewClient(tc), nil
 }
 
 // example: dagger call ftest-create-release --token=GITHUB_TOKEN --files=./testfiles
