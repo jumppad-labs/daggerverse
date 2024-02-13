@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path"
 	"sort"
@@ -176,6 +179,54 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 	}
 
 	return "", nil
+}
+
+// GetOIDCToken returns an OpenID Connect (OIDC) token for the current run in GitHubActions
+// When a actions run has the `id-token: write` permission, it can request an OIDC token for the current run
+// the parameters actionsRequestToken and actionsTokenURL are provided by the GitHubActions environment
+// variables `ACTIONS_ID_TOKEN_REQUEST_TOKEN` and `ACTIONS_ID_TOKEN_REQUEST_URL`.
+//
+// example actions config to enable OIDC tokens:
+// jobs:
+//
+//	build:
+//	  runs-on: ubuntu-latest
+//	  permissions:
+//	    id-token: write
+//	    contents: read
+func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *Secret, actionsTokenURL string) (string, error) {
+	rq, err := http.NewRequest(http.MethodGet, actionsTokenURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("unable to create request: %w", err)
+	}
+
+	tkn, _ := actionsRequestToken.Plaintext(ctx)
+
+	// add the bearer token for the request
+	rq.Header.Add("Authorization", fmt.Sprintf("bearer %s", tkn))
+
+	// make the request
+	resp, err := http.DefaultClient.Do(rq)
+	if err != nil {
+		return "", fmt.Errorf("unable to request token: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	// parse the response
+	data := map[string]interface{}{}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("unable to read response body: %w", err)
+	}
+
+	json.Unmarshal(body, &data)
+	gitHubJWT := data["value"].(string)
+	return gitHubJWT, nil
 }
 
 func (m *Github) getClient(ctx context.Context) (*github.Client, error) {

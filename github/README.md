@@ -64,6 +64,36 @@ if err != nil {
 }
 ```
 
+## GetOIDCToken
+
+'GetOIDCToken' returns an OIDC token for the current GitHub actions run.
+
+Parameters:
+- `actionsRequestToken` (Secret): The GitHub Actions request token, provided by the environment variable `ACTIONS_ID_TOKEN_REQUEST_TOKEN`.
+- `actionsTokenURL` (string): The GitHub Actions token URL, provided by the environment variable `ACTIONS_ID_TOKEN_REQUEST_URL`. 
+
+Returns:
+- `string`: The OIDC token.
+
+Note: To use this function you need to set the `id-token` permission in your workflow file.
+
+```yaml
+jobs:
+
+build:
+  runs-on: ubuntu-latest
+  permissions:
+    id-token: write
+    contents: read
+```
+
+Example:
+
+```go
+tkn, err := dag.Github().
+  GetOIDCToken("<your token>", "<your url>")
+```
+
 ## WithToken
 
 Sets the Github token to use for authentication.
