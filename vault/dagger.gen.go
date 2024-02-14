@@ -6912,6 +6912,48 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				}
 			}
 			return (*Vault).TestWrite(&parent, ctx, host, namespace, username, password, secret, params)
+		case "TestRead":
+			var parent Vault
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var host string
+			if inputArgs["host"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["host"]), &host)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg host", err))
+				}
+			}
+			var namespace string
+			if inputArgs["namespace"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["namespace"]), &namespace)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg namespace", err))
+				}
+			}
+			var username *Secret
+			if inputArgs["username"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["username"]), &username)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg username", err))
+				}
+			}
+			var password *Secret
+			if inputArgs["password"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["password"]), &password)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg password", err))
+				}
+			}
+			var secret string
+			if inputArgs["secret"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["secret"]), &secret)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg secret", err))
+				}
+			}
+			return (*Vault).TestRead(&parent, ctx, host, namespace, username, password, secret)
 		case "TestKVGet":
 			var parent Vault
 			err = json.Unmarshal(parentJSON, &parent)
@@ -7010,6 +7052,15 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 							WithArg("password", dag.TypeDef().WithObject("Secret")).
 							WithArg("secret", dag.TypeDef().WithKind(StringKind)).
 							WithArg("params", dag.TypeDef().WithKind(StringKind).WithOptional(true))).
+					WithFunction(
+						dag.Function("TestRead",
+							dag.TypeDef().WithKind(StringKind)).
+							WithDescription("TestRead is a test function for the GetSecretJSON function\nexample usage: dagger call test-read --host ${VAULT_ADDR} --namespace=${VAULT_NAMESPACE} --username=VAULT_USER --password=VAULT_PASSWORD --secret=kubernetes/hashitalks/creds/deployer-default --params=\"kubernetes_namespace=default\"").
+							WithArg("host", dag.TypeDef().WithKind(StringKind)).
+							WithArg("namespace", dag.TypeDef().WithKind(StringKind)).
+							WithArg("username", dag.TypeDef().WithObject("Secret")).
+							WithArg("password", dag.TypeDef().WithObject("Secret")).
+							WithArg("secret", dag.TypeDef().WithKind(StringKind))).
 					WithFunction(
 						dag.Function("TestKVGet",
 							dag.TypeDef().WithKind(StringKind)).

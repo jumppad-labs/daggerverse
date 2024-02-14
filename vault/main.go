@@ -231,6 +231,39 @@ func (v *Vault) TestWrite(
 	return s.Plaintext(ctx)
 }
 
+// TestRead is a test function for the GetSecretJSON function
+// example usage: dagger call test-read --host ${VAULT_ADDR} --namespace=${VAULT_NAMESPACE} --username=VAULT_USER --password=VAULT_PASSWORD --secret=kubernetes/hashitalks/creds/deployer-default --params="kubernetes_namespace=default"
+func (v *Vault) TestRead(
+	ctx context.Context,
+	host,
+	namespace string,
+	username,
+	password *Secret,
+	secret string,
+) (string, error) {
+	// set the debug logger
+	log.SetLevel(log.DebugLevel)
+
+	v.Namespace = namespace
+	v.Host = host
+
+	u, _ := username.Plaintext(ctx)
+	p, _ := password.Plaintext(ctx)
+
+	v.Userpass = &UserpassAuth{
+		Username: u,
+		Password: p,
+		Path:     "userpass",
+	}
+
+	s, err := v.Read(ctx, secret)
+	if err != nil {
+		return "", err
+	}
+
+	return s.Plaintext(ctx)
+}
+
 // TestKVGet is a test function for the GetSecretJSON function
 // example usage: dagger call test-write --host ${VAULT_ADDR} --namespace=${VAULT_NAMESPACE} --username=VAULT_USER --password=VAULT_PASSWORD --secret=secrets/hashitalks/creds/deployment
 func (v *Vault) TestKVGet(
