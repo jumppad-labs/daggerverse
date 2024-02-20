@@ -57,6 +57,7 @@ func (m *Github) CreateRelease(
 		Tag:     &tag,
 		SHA:     &sha,
 		Message: &tagMessage,
+		Object:  &github.GitObject{SHA: &sha, Type: github.String("commit")},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create tag: %w", err)
