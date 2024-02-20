@@ -17,11 +17,11 @@ import (
 )
 
 type Github struct {
-	Token string
+	Token *Secret
 }
 
 // WithToken sets the GithHub token for any opeations that require it
-func (m *Github) WithToken(token string) *Github {
+func (m *Github) WithToken(token *Secret) *Github {
 	m.Token = token
 
 	return m
@@ -230,13 +230,18 @@ func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *Secret, 
 }
 
 func (m *Github) getClient(ctx context.Context) (*github.Client, error) {
-	if m.Token == "" {
+	if m.Token == nil {
 		log.Error("GitHub token not set")
 		return nil, fmt.Errorf("GitHub token not set, please use the WithToken function to set the token")
 	}
 
+	tkn, err := m.Token.Plaintext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: m.Token},
+		&oauth2.Token{AccessToken: tkn},
 	)
 
 	tc := oauth2.NewClient(ctx, ts)
@@ -254,7 +259,7 @@ func (m *Github) FTestCreateRelease(
 	// enable debug logging
 	log.SetLevel(log.DebugLevel)
 
-	m.Token, _ = token.Plaintext(ctx)
+	m.Token = token
 
 	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
 	if err != nil {
@@ -271,7 +276,7 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 	// enable debug logging
 	log.SetLevel(log.DebugLevel)
 
-	m.Token, _ = token.Plaintext(ctx)
+	m.Token = token
 
 	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
 	if err != nil {
