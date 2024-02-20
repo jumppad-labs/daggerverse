@@ -52,6 +52,16 @@ func (m *Github) CreateRelease(
 		return fmt.Errorf("failed to create release: %w", err)
 	}
 
+	tagMessage := "Create new release"
+	_, _, err = client.Git.CreateTag(ctx, owner, repo, &github.Tag{
+		Tag:     &tag,
+		SHA:     &sha,
+		Message: &tagMessage,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create tag: %w", err)
+	}
+
 	log.Debug("Created release", "release", *rel.ID)
 
 	// if there are files to upload, upload them to the release
