@@ -1,6 +1,6 @@
 {
   "name": "notorize",
   "sdk": "go",
-  "source": "dagger",
+  "source": ".",
   "engineVersion": "v0.9.9"
 }

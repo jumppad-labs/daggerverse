@@ -6622,11 +6622,22 @@ func (c errorWrappedClient) MakeRequest(ctx context.Context, req *graphql.Reques
 }
 
 func (r *Notorize) UnmarshalJSON(bs []byte) error {
-	var concrete struct{}
+	var concrete struct {
+		P12Cert         *File
+		P12CertPassword *Secret
+		NotoryKey       *File
+		NotoryKeyID     string
+		NotoryIssuer    string
+	}
 	err := json.Unmarshal(bs, &concrete)
 	if err != nil {
 		return err
 	}
+	r.P12Cert = concrete.P12Cert
+	r.P12CertPassword = concrete.P12CertPassword
+	r.NotoryKey = concrete.NotoryKey
+	r.NotoryKeyID = concrete.NotoryKeyID
+	r.NotoryIssuer = concrete.NotoryIssuer
 	return nil
 }
 
@@ -6691,41 +6702,118 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 	switch parentName {
 	case "Notorize":
 		switch fnName {
-		case "ContainerEcho":
+		case "WithP12Cert":
 			var parent Notorize
 			err = json.Unmarshal(parentJSON, &parent)
 			if err != nil {
 				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
 			}
-			var stringArg string
-			if inputArgs["stringArg"] != nil {
-				err = json.Unmarshal([]byte(inputArgs["stringArg"]), &stringArg)
+			var cert *File
+			if inputArgs["cert"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["cert"]), &cert)
 				if err != nil {
-					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg stringArg", err))
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg cert", err))
 				}
 			}
-			return (*Notorize).ContainerEcho(&parent, stringArg), nil
-		case "GrepDir":
+			var password *Secret
+			if inputArgs["password"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["password"]), &password)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg password", err))
+				}
+			}
+			return (*Notorize).WithP12Cert(&parent, cert, password), nil
+		case "WithNotoryKey":
 			var parent Notorize
 			err = json.Unmarshal(parentJSON, &parent)
 			if err != nil {
 				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
 			}
-			var directoryArg *Directory
-			if inputArgs["directoryArg"] != nil {
-				err = json.Unmarshal([]byte(inputArgs["directoryArg"]), &directoryArg)
+			var key *File
+			if inputArgs["key"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["key"]), &key)
 				if err != nil {
-					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg directoryArg", err))
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg key", err))
 				}
 			}
-			var pattern string
-			if inputArgs["pattern"] != nil {
-				err = json.Unmarshal([]byte(inputArgs["pattern"]), &pattern)
+			var keyId string
+			if inputArgs["keyID"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["keyID"]), &keyId)
 				if err != nil {
-					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg pattern", err))
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg keyID", err))
 				}
 			}
-			return (*Notorize).GrepDir(&parent, ctx, directoryArg, pattern)
+			var issuer string
+			if inputArgs["issuer"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["issuer"]), &issuer)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg issuer", err))
+				}
+			}
+			return (*Notorize).WithNotoryKey(&parent, key, keyId, issuer), nil
+		case "SignAndNotorize":
+			var parent Notorize
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var file *File
+			if inputArgs["file"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["file"]), &file)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg file", err))
+				}
+			}
+			return (*Notorize).SignAndNotorize(&parent, ctx, file)
+		case "TestNotorize":
+			var parent Notorize
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var file *File
+			if inputArgs["file"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["file"]), &file)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg file", err))
+				}
+			}
+			var cert *File
+			if inputArgs["cert"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["cert"]), &cert)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg cert", err))
+				}
+			}
+			var password *Secret
+			if inputArgs["password"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["password"]), &password)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg password", err))
+				}
+			}
+			var key *File
+			if inputArgs["key"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["key"]), &key)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg key", err))
+				}
+			}
+			var id string
+			if inputArgs["id"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["id"]), &id)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg id", err))
+				}
+			}
+			var issuer string
+			if inputArgs["issuer"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["issuer"]), &issuer)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg issuer", err))
+				}
+			}
+			return (*Notorize).TestNotorize(&parent, ctx, file, cert, password, key, id, issuer)
 		default:
 			return nil, fmt.Errorf("unknown function %s", fnName)
 		}
@@ -6734,16 +6822,37 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 			WithObject(
 				dag.TypeDef().WithObject("Notorize").
 					WithFunction(
-						dag.Function("ContainerEcho",
-							dag.TypeDef().WithObject("Container")).
-							WithDescription("example usage: \"dagger call container-echo --string-arg yo stdout\"").
-							WithArg("stringArg", dag.TypeDef().WithKind(StringKind))).
+						dag.Function("WithP12Cert",
+							dag.TypeDef().WithObject("Notorize")).
+							WithDescription("WithP12Cert sets the p12 certificate file and password").
+							WithArg("cert", dag.TypeDef().WithObject("File")).
+							WithArg("password", dag.TypeDef().WithObject("Secret"))).
 					WithFunction(
-						dag.Function("GrepDir",
-							dag.TypeDef().WithKind(StringKind)).
-							WithDescription("example usage: \"dagger call grep-dir --directory-arg . --pattern GrepDir\"").
-							WithArg("directoryArg", dag.TypeDef().WithObject("Directory")).
-							WithArg("pattern", dag.TypeDef().WithKind(StringKind)))), nil
+						dag.Function("WithNotoryKey",
+							dag.TypeDef().WithObject("Notorize")).
+							WithDescription("WithNotoryKey sets the notory key and issuer").
+							WithArg("key", dag.TypeDef().WithObject("File")).
+							WithArg("keyID", dag.TypeDef().WithKind(StringKind)).
+							WithArg("issuer", dag.TypeDef().WithKind(StringKind))).
+					WithFunction(
+						dag.Function("SignAndNotorize",
+							dag.TypeDef().WithObject("File")).
+							WithDescription("Notarize notarizes a file using the notory key").
+							WithArg("file", dag.TypeDef().WithObject("File"))).
+					WithFunction(
+						dag.Function("TestNotorize",
+							dag.TypeDef().WithObject("File")).
+							WithArg("file", dag.TypeDef().WithObject("File")).
+							WithArg("cert", dag.TypeDef().WithObject("File")).
+							WithArg("password", dag.TypeDef().WithObject("Secret")).
+							WithArg("key", dag.TypeDef().WithObject("File")).
+							WithArg("id", dag.TypeDef().WithKind(StringKind)).
+							WithArg("issuer", dag.TypeDef().WithKind(StringKind))).
+					WithField("P12Cert", dag.TypeDef().WithObject("File")).
+					WithField("P12CertPassword", dag.TypeDef().WithObject("Secret")).
+					WithField("NotoryKey", dag.TypeDef().WithObject("File")).
+					WithField("NotoryKeyID", dag.TypeDef().WithKind(StringKind)).
+					WithField("NotoryIssuer", dag.TypeDef().WithKind(StringKind))), nil
 	default:
 		return nil, fmt.Errorf("unknown object %s", parentName)
 	}

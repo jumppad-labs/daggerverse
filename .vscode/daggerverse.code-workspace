@@ -14,6 +14,9 @@
 		},
 		{
 			"path": "../vault"
+		},
+		{
+			"path": "../notorize"
 		}
 	],
 	"settings": {}
