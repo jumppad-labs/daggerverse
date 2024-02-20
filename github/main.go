@@ -125,18 +125,27 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 		return "", nil
 	}
 
-	// get the latest release tag
-	tags, _, err := client.Repositories.ListTags(ctx, owner, repo, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to get releases: %w", err)
-	}
-
 	versions := []*semver.Version{}
-	for _, t := range tags {
-		// check if the tag is a semver, if so add it to the list
-		v, err := semver.NewVersion(*t.Name)
-		if err == nil {
-			versions = append(versions, v)
+	page := 0
+
+	for {
+		// get the latest release tag
+		tags, resp, err := client.Repositories.ListTags(ctx, owner, repo, &github.ListOptions{Page: page})
+		if err != nil {
+			return "", fmt.Errorf("failed to get releases: %w", err)
+		}
+
+		for _, t := range tags {
+			// check if the tag is a semver, if so add it to the list
+			v, err := semver.NewVersion(*t.Name)
+			if err == nil {
+				versions = append(versions, v)
+			}
+		}
+
+		page = resp.NextPage
+		if page == 0 {
+			break
 		}
 	}
 
@@ -271,14 +280,14 @@ func (m *Github) FTestCreateRelease(
 
 	m.Token = token
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "6976eb3f392256c384e87094853853f90c64ca68")
 	if err != nil {
 		return err
 	}
 
 	log.Debug("new version", "version", v)
 
-	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", files)
+	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "6976eb3f392256c384e87094853853f90c64ca68", files)
 }
 
 // example: dagger call ftest-bump-version-with-prtag --token=GITHUB_TOKEN
@@ -288,7 +297,7 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 
 	m.Token = token
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "jumppad", "28b8295f003c4f3eff3bb363e5f639e702403989")
 	if err != nil {
 		return v, err
 	}
