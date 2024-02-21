@@ -98,7 +98,7 @@ func (m *Github) CreateRelease(
 
 // NextVersionFromAssociatedPRLabel returns a the next semantic version based on the presence of a PR label
 // for the given commit SHA.
-// If there are multiple PRs associated with the commit, the highest label from any matching PR will be used
+// If there are multiple PRs associated with the commit, the label from the latest PR will be used.
 //
 // i.e. if the SHA has an associated PR with a label of `major` and the current tag is `1.1.2` the next version will be `2.0.0`
 // if the PR has a tag of `minor` and the current tag is `1.1.2` the next version will be `1.2.0`
@@ -115,9 +115,21 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 	}
 
 	// find any associated PRs with the commit
-	prs, _, err := client.PullRequests.ListPullRequestsWithCommit(ctx, owner, repo, sha, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to get pull requests: %w", err)
+	prs := []*github.PullRequest{}
+	page := 0
+
+	// loop through and get all prs associated with the commit, list might be paged
+	for {
+		p, resp, err := client.PullRequests.ListPullRequestsWithCommit(ctx, owner, repo, sha, &github.ListOptions{Page: page})
+		if err != nil {
+			return "", fmt.Errorf("failed to get pull requests: %w", err)
+		}
+
+		prs = append(prs, p...)
+
+		if resp.NextPage == 0 {
+			break
+		}
 	}
 
 	// no PRS associated with this commit, return an empty string
@@ -127,7 +139,7 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 	}
 
 	versions := []*semver.Version{}
-	page := 0
+	page = 0
 
 	for {
 		// get the latest release tag
@@ -162,25 +174,33 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 	}
 
 	bump := ""
+	maxID := 0
 
 	// check the PRs for labels
 	for _, pr := range prs {
-		log.Debug("Checking PR for labels", "pr", *pr.Number)
+		log.Debug("Checking PR for labels", "pr", *pr.Number, "labels", pr.Labels)
 
-		// if there are multiple labels, get the highest one
-		for _, l := range pr.Labels {
-			switch *l.Name {
-			case "major":
-				bump = "major"
-			case "minor":
-				if bump != "major" {
-					bump = "minor"
-				}
-			case "patch":
-				if bump == "" {
-					bump = "minor"
+		// only check the latest closed PR
+		if pr.Number != nil && *pr.Number > maxID {
+			// if there are multiple labels, get the highest one
+			lab := ""
+			for _, l := range pr.Labels {
+				switch *l.Name {
+				case "major":
+					lab = "major"
+				case "minor":
+					if lab != "major" {
+						lab = "minor"
+					}
+				case "patch":
+					if lab == "" {
+						lab = "patch"
+					}
 				}
 			}
+
+			maxID = *pr.Number
+			bump = lab
 		}
 	}
 
@@ -298,7 +318,7 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 
 	m.Token = token
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "jumppad", "28b8295f003c4f3eff3bb363e5f639e702403989")
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "jumppad", "40b23e95b96ff0869b4c7ac3ad7cde6fe68200d8")
 	if err != nil {
 		return v, err
 	}
