@@ -17,6 +17,9 @@
 		},
 		{
 			"path": "../notorize"
+		},
+		{
+			"path": "../brew"
 		}
 	],
 	"settings": {}

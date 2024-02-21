@@ -36,6 +36,8 @@ func (m *Github) CreateRelease(
 	tag,
 	sha string,
 	// +optional
+	name string,
+	// +optional
 	files *Directory,
 ) error {
 	client, err := m.getClient(ctx)
@@ -43,7 +45,12 @@ func (m *Github) CreateRelease(
 		return err
 	}
 
+	if name == "" {
+		name = tag
+	}
+
 	rel, _, err := client.Repositories.CreateRelease(ctx, owner, repo, &github.RepositoryRelease{
+		Name:            &name,
 		TagName:         &tag,
 		TargetCommitish: &sha,
 	})
