@@ -315,7 +315,7 @@ func (m *Github) FTestCreateRelease(
 
 	log.Debug("new version", "version", v)
 
-	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "6976eb3f392256c384e87094853853f90c64ca68", files)
+	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "6976eb3f392256c384e87094853853f90c64ca68", "", files)
 }
 
 // example: dagger call ftest-bump-version-with-prtag --token=GITHUB_TOKEN
