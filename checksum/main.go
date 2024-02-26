@@ -14,7 +14,7 @@ func (c *Checksum) CalculateChecksum(ctx context.Context, url string) (string, e
 		From("alpine:latest").
 		WithExec([]string{"apk", "add", "curl"}).
 		WithExec([]string{
-			"curl", "-slo", "/jumppad", url,
+			"curl", "-sLo", "/jumppad", url,
 		}).
 		WithExec([]string{
 			"sha256sum", "-b", "/jumppad",

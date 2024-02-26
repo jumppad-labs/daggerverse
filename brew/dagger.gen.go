@@ -3698,14 +3698,12 @@ func (r *Github) FtestBumpVersionWithPrtag(ctx context.Context, token *Secret) (
 	return response, q.Execute(ctx, r.c)
 }
 
-func (r *Github) FtestCommitFile(ctx context.Context, file *File, token *Secret) (string, error) {
-	assertNotNil("file", file)
+func (r *Github) FtestCommitFile(ctx context.Context, token *Secret) (string, error) {
 	assertNotNil("token", token)
 	if r.ftestCommitFile != nil {
 		return *r.ftestCommitFile, nil
 	}
 	q := r.q.Select("ftestCommitFile")
-	q = q.Arg("file", file)
 	q = q.Arg("token", token)
 
 	var response string
@@ -7087,6 +7085,13 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg homepage", err))
 				}
 			}
+			var repository string
+			if inputArgs["repository"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["repository"]), &repository)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg repository", err))
+				}
+			}
 			var version string
 			if inputArgs["version"] != nil {
 				err = json.Unmarshal([]byte(inputArgs["version"]), &version)
@@ -7094,11 +7099,18 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg version", err))
 				}
 			}
-			var gitToken string
-			if inputArgs["gitToken"] != nil {
-				err = json.Unmarshal([]byte(inputArgs["gitToken"]), &gitToken)
+			var commiterName string
+			if inputArgs["commiterName"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["commiterName"]), &commiterName)
 				if err != nil {
-					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg gitToken", err))
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg commiterName", err))
+				}
+			}
+			var commiterEmail string
+			if inputArgs["commiterEmail"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["commiterEmail"]), &commiterEmail)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg commiterEmail", err))
 				}
 			}
 			var binaryName string
@@ -7106,6 +7118,13 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				err = json.Unmarshal([]byte(inputArgs["binaryName"]), &binaryName)
 				if err != nil {
 					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg binaryName", err))
+				}
+			}
+			var gitToken *Secret
+			if inputArgs["gitToken"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["gitToken"]), &gitToken)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg gitToken", err))
 				}
 			}
 			var darwinX86Url string
@@ -7136,7 +7155,7 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg linuxArm64URL", err))
 				}
 			}
-			return (*Brew).Formula(&parent, ctx, homepage, version, gitToken, binaryName, darwinX86Url, darwinArm64Url, linuxX86Url, linuxArm64Url)
+			return (*Brew).Formula(&parent, ctx, homepage, repository, version, commiterName, commiterEmail, binaryName, gitToken, darwinX86Url, darwinArm64Url, linuxX86Url, linuxArm64Url)
 		default:
 			return nil, fmt.Errorf("unknown function %s", fnName)
 		}
@@ -7149,9 +7168,12 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 							dag.TypeDef().WithKind(StringKind)).
 							WithDescription("example usage:").
 							WithArg("homepage", dag.TypeDef().WithKind(StringKind)).
+							WithArg("repository", dag.TypeDef().WithKind(StringKind)).
 							WithArg("version", dag.TypeDef().WithKind(StringKind)).
-							WithArg("gitToken", dag.TypeDef().WithKind(StringKind)).
+							WithArg("commiterName", dag.TypeDef().WithKind(StringKind)).
+							WithArg("commiterEmail", dag.TypeDef().WithKind(StringKind)).
 							WithArg("binaryName", dag.TypeDef().WithKind(StringKind)).
+							WithArg("gitToken", dag.TypeDef().WithObject("Secret")).
 							WithArg("darwinX86URL", dag.TypeDef().WithKind(StringKind).WithOptional(true)).
 							WithArg("darwinArm64URL", dag.TypeDef().WithKind(StringKind).WithOptional(true)).
 							WithArg("linuxX86URL", dag.TypeDef().WithKind(StringKind).WithOptional(true)).
