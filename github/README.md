@@ -46,7 +46,7 @@ If there are multiple PRs associated with the commit, the highest label from any
 Parameters:
 - `owner` (str): The owner of the repository.
 - `repo` (str): The name of the repository.
-- `sha` (string): Commit SHA associated with a PR.
+- `sha` (st): Commit SHA associated with a PR.
 - `token` (Secret, optional): The GitHub token to use for authentication, can also be set using `WithToken`.
 
 Returns:
@@ -93,6 +93,36 @@ Example:
 tkn, err := dag.Github().
   GetOIDCToken("<your token>", "<your url>")
 ```
+
+## CommitFile
+Creates a new commit in the given respoiory with the specified file changes.
+
+Parameters:
+- `owner` (str): The owner of the repository.
+- `repo` (str): The name of the repository.
+- `author` (str): The author of the commit.
+- `email` (str): The email of the author.
+- `message` (str): The commit message.
+- `file` (File): The file to commit.
+- `branch` (str, optional): The branch to commit to.
+
+Example:
+
+```go
+dag.Github().CommitFile(
+  ctx,
+  "jumppad-labs", 
+  "daggerverse", 
+  "John Doe",
+  "john@doe.com",
+  "Updated file",
+  file,
+)
+```
+
+Returns:
+- `string`: The SHA of the new commit.
+- `error`: An error if the commit fails.
 
 ## WithToken
 

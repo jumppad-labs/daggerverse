@@ -6847,7 +6847,7 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg linuxArm64URL", err))
 				}
 			}
-			return nil, (*Brew).Formula(&parent, ctx, homepage, version, gitToken, binaryName, darwinX86Url, darwinArm64Url, linuxX86Url, linuxArm64Url)
+			return (*Brew).Formula(&parent, ctx, homepage, version, gitToken, binaryName, darwinX86Url, darwinArm64Url, linuxX86Url, linuxArm64Url)
 		default:
 			return nil, fmt.Errorf("unknown function %s", fnName)
 		}
@@ -6857,7 +6857,7 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				dag.TypeDef().WithObject("Brew").
 					WithFunction(
 						dag.Function("Formula",
-							dag.TypeDef().WithKind(VoidKind).WithOptional(true)).
+							dag.TypeDef().WithKind(StringKind)).
 							WithDescription("example usage:").
 							WithArg("homepage", dag.TypeDef().WithKind(StringKind)).
 							WithArg("version", dag.TypeDef().WithKind(StringKind)).

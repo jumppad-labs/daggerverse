@@ -276,6 +276,56 @@ func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *Secret, 
 	return gitHubJWT, nil
 }
 
+// CommitFile commits a file to a repository at the given path
+func (m *Github) CommitFile(
+	ctx context.Context,
+	owner,
+	repo,
+	commiterName,
+	commiterEmail,
+	commitPath,
+	message string,
+	file *File,
+	// +optional
+	branch string,
+) (string, error) {
+	c, err := m.getClient(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var commitBranch *string
+
+	if branch != "" {
+		commitBranch = &branch
+	}
+
+	outPath := path.Join(os.TempDir(), "file")
+	_, err = file.Export(ctx, outPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to export file: %w", err)
+	}
+
+	data, _ := os.ReadFile(outPath)
+
+	cm, _, err := c.Repositories.UpdateFile(ctx, owner, repo, commitPath,
+		&github.RepositoryContentFileOptions{
+			Content: data,
+			Branch:  commitBranch,
+			Message: &message,
+			Committer: &github.CommitAuthor{
+				Name:  &commiterName,
+				Email: &commiterEmail,
+			},
+		})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to update file: %w", err)
+	}
+
+	return *cm.Commit.SHA, nil
+}
+
 func (m *Github) getClient(ctx context.Context) (*github.Client, error) {
 	if m.Token == nil {
 		log.Error("GitHub token not set")
@@ -333,4 +383,22 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 	log.Debug("new version", "version", v)
 
 	return v, nil
+}
+
+func (m *Github) FTestCommitFile(ctx context.Context, file *File, token *Secret) (string, error) {
+	// enable debug logging
+	log.SetLevel(log.DebugLevel)
+
+	m.Token = token
+
+	return m.CommitFile(ctx,
+		"jumppad-labs",
+		"daggerverse",
+		"jumppad",
+		"hello@jumppad.dev",
+		"test.txt",
+		"commit message",
+		file,
+		"",
+	)
 }

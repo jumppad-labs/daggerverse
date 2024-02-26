@@ -37,7 +37,8 @@ func (b *Brew) Formula(
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
-		h = fmt.Sprintf(darwinIntel, darwinX86URL, checksum)
+		parts := strings.Split(checksum, " ")
+		h = fmt.Sprintf(darwinIntel, darwinX86URL, parts[0])
 		template.WriteString(h)
 	}
 
@@ -47,7 +48,8 @@ func (b *Brew) Formula(
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
-		h = fmt.Sprintf(darwinArm, darwinArm64URL, checksum)
+		parts := strings.Split(checksum, " ")
+		h = fmt.Sprintf(darwinArm, darwinArm64URL, parts[0])
 		template.WriteString(h)
 	}
 
@@ -67,7 +69,8 @@ func (b *Brew) Formula(
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
-		h = fmt.Sprintf(linuxArm, linuxArm64URL, checksum)
+		parts := strings.Split(checksum, " ")
+		h = fmt.Sprintf(linuxArm, linuxArm64URL, parts[0])
 		template.WriteString(h)
 	}
 
@@ -88,7 +91,6 @@ class Jumppad < Formula
   desc ""
   homepage "%s"
   version "%s"
-
 `
 
 var darwinIntel = `
@@ -96,7 +98,6 @@ var darwinIntel = `
     url "%s"
     sha256 "%s"
   end
-
 `
 
 var darwinArm = `
@@ -104,7 +105,6 @@ var darwinArm = `
     url "%s"
     sha256 "%s"
   end
-
 `
 
 var linuxArm = `
@@ -112,7 +112,6 @@ var linuxArm = `
     url "%s"
     sha256 "%s"
   end
-
 `
 
 var linuxIntel = `
@@ -120,7 +119,6 @@ var linuxIntel = `
     url "%s"
     sha256 "%s"
   end
-
 `
 
 var footer = `

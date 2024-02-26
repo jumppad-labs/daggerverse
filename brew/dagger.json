@@ -4,7 +4,7 @@
   "dependencies": [
     {
       "name": "checksum",
-      "source": "github.com/jumppad-labs/daggerverse/checksum@c343680a3efe55e2e4190ba41d6ce3fd86f87a5a"
+      "source": "github.com/jumppad-labs/daggerverse/checksum@cbdc3fa3f21f9765cdca60565fc74452e430ce36"
     }
   ],
   "source": ".",
