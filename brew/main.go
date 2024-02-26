@@ -12,9 +12,12 @@ type Brew struct{}
 func (b *Brew) Formula(
 	ctx context.Context,
 	homepage,
+	repository,
 	version,
-	gitToken,
+	commiterName,
+	commiterEmail,
 	binaryName string,
+	gitToken *Secret,
 	// +optional
 	darwinX86URL string,
 	// +optional
@@ -78,9 +81,25 @@ func (b *Brew) Formula(
 	h = fmt.Sprintf(footer, binaryName)
 	template.WriteString(h)
 
-	// Commit the template
+	repo := strings.Split(repository, "/")
 
-	return template.String(), nil
+	f := dag.
+		Directory().
+		WithNewFile("template.rb", template.String()).
+		File("template.rb")
+
+	// Commit the template
+	return dag.Github().
+		WithToken(gitToken).
+		CommitFile(
+			ctx,
+			repo[0], repo[1],
+			commiterName,
+			commiterEmail,
+			fmt.Sprintf("%s.rb", binaryName),
+			fmt.Sprintf("Update version to %s", version),
+			f,
+		)
 }
 
 var header = `

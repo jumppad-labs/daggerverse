@@ -9,6 +9,8 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/Masterminds/semver"
 	"github.com/charmbracelet/log"
@@ -308,11 +310,27 @@ func (m *Github) CommitFile(
 
 	data, _ := os.ReadFile(outPath)
 
+	// get the sha of the existing file
+	var sha *string
+
+	f, _, _, err := c.Repositories.GetContents(ctx, owner, repo, commitPath, &github.RepositoryContentGetOptions{Ref: branch})
+	if err != nil {
+		// check if the error is a 404 error
+		if !strings.Contains(err.Error(), "404") {
+			return "", fmt.Errorf("failed to get file: %w", err)
+		}
+	}
+
+	if f != nil {
+		sha = f.SHA
+	}
+
 	cm, _, err := c.Repositories.UpdateFile(ctx, owner, repo, commitPath,
 		&github.RepositoryContentFileOptions{
 			Content: data,
 			Branch:  commitBranch,
 			Message: &message,
+			SHA:     sha,
 			Committer: &github.CommitAuthor{
 				Name:  &commiterName,
 				Email: &commiterEmail,
@@ -385,11 +403,13 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 	return v, nil
 }
 
-func (m *Github) FTestCommitFile(ctx context.Context, file *File, token *Secret) (string, error) {
+func (m *Github) FTestCommitFile(ctx context.Context, token *Secret) (string, error) {
 	// enable debug logging
 	log.SetLevel(log.DebugLevel)
 
 	m.Token = token
+
+	f := dag.Directory().WithNewFile("test.txt", time.Now().String()).File("test.txt")
 
 	return m.CommitFile(ctx,
 		"jumppad-labs",
@@ -398,7 +418,7 @@ func (m *Github) FTestCommitFile(ctx context.Context, file *File, token *Secret)
 		"hello@jumppad.dev",
 		"test.txt",
 		"commit message",
-		file,
+		f,
 		"",
 	)
 }

@@ -3,6 +3,10 @@
   "sdk": "go",
   "dependencies": [
     {
+      "name": "github",
+      "source": "github.com/jumppad-labs/daggerverse/github@42f153b217184ebffddff6819063d86a129dacdc"
+    },
+    {
       "name": "checksum",
       "source": "github.com/jumppad-labs/daggerverse/checksum@cbdc3fa3f21f9765cdca60565fc74452e430ce36"
     }
