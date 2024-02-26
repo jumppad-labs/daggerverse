@@ -1,5 +1,11 @@
 # Brew
 
+## Formula
+
+Enabled a homebrew repository to be updated with the details of the formula.
+
+Example:
+
 ```shell
 dagger call formula \
   --homepage="https://jumppad.dev" \

@@ -57,7 +57,7 @@ func (b *Brew) Formula(
 	}
 
 	if linuxX86URL != "" {
-		checksum, err := dag.Checksum().CalculateChecksum(ctx, linuxArm64URL)
+		checksum, err := dag.Checksum().CalculateChecksum(ctx, linuxX86URL)
 		if err != nil {
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
@@ -87,6 +87,8 @@ func (b *Brew) Formula(
 		Directory().
 		WithNewFile("template.rb", template.String()).
 		File("template.rb")
+
+	fmt.Println(template.String())
 
 	// Commit the template
 	return dag.Github().
