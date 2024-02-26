@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
@@ -8,7 +9,11 @@ import (
 type Brew struct{}
 
 func (b *Brew) Formula(
-	repository,
+	ctx context.Context,
+	homepage,
+	version,
+	gitToken,
+	binaryName string,
 	// +optional
 	darwinX86URL string,
 	// +optional
@@ -16,12 +21,62 @@ func (b *Brew) Formula(
 	// +optional
 	linuxX86URL string,
 	// +optional
-	linux_arm64_url string,
+	linuxArm64URL string,
 ) error {
 	template := &strings.Builder{}
 
-	h := fmt.Sprintf(header, version)
+	// Write header
+	h := fmt.Sprintf(header, homepage, version)
 	template.WriteString(h)
+
+	// do we need to add darwin intel
+	if darwinX86URL != "" {
+		checksum, err := b.calculateChecksum(ctx, darwinX86URL)
+		if err != nil {
+			return fmt.Errorf("failed to calculate checksum: %w", err)
+		}
+
+		h = fmt.Sprintf(darwinIntel, darwinX86URL, checksum)
+		template.WriteString(h)
+	}
+
+	if darwinArm64URL != "" {
+		checksum, err := b.calculateChecksum(ctx, darwinArm64URL)
+		if err != nil {
+			return fmt.Errorf("failed to calculate checksum: %w", err)
+		}
+
+		h = fmt.Sprintf(darwinArm, darwinArm64URL, checksum)
+		template.WriteString(h)
+	}
+
+	if linuxX86URL != "" {
+		checksum, err := b.calculateChecksum(ctx, linuxArm64URL)
+		if err != nil {
+			return fmt.Errorf("failed to calculate checksum: %w", err)
+		}
+
+		h = fmt.Sprintf(linuxIntel, linuxX86URL, checksum)
+		template.WriteString(h)
+	}
+
+	if linuxArm64URL != "" {
+		checksum, err := b.calculateChecksum(ctx, linuxArm64URL)
+		if err != nil {
+			return fmt.Errorf("failed to calculate checksum: %w", err)
+		}
+
+		h = fmt.Sprintf(linuxArm, linuxArm64URL, checksum)
+		template.WriteString(h)
+	}
+
+	// Write footer
+	h = fmt.Sprintf(footer, binaryName)
+	template.WriteString(h)
+
+	// Commit the template
+
+	return nil
 }
 
 var header = `
@@ -30,35 +85,46 @@ var header = `
 
 class Jumppad < Formula
   desc ""
-  homepage "https://jumppad.dev/"
+  homepage "%s"
   version "%s"
 
 `
 
-var macArm = `
+var darwinIntel = `
   if OS.mac? && Hardware::CPU.intel?
-    url "https://github.com/%s/releases/download/%s/jumppad_%s_darwin_x86_64.zip"
+    url "%s"
     sha256 "%s"
   end
+
 `
 
-var t = `
-
+var darwinArm = `
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/jumppad-labs/jumppad/releases/download/${VERSION}/jumppad_${VERSION}_darwin_arm64.zip"
-    sha256 "${DARWIN_ARM64_SHA}"
-  end
-  if OS.linux? && Hardware::CPU.intel?
-    url "https://github.com/jumppad-labs/jumppad/releases/download/${VERSION}/jumppad_${VERSION}_linux_x86_64.tar.gz"
-    sha256 "${LINUX_x86_SHA}"
-  end
-  if OS.linux? && Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-    url "https://github.com/jumppad-labs/jumppad/releases/download/${VERSION}/jumppad_${VERSION}_linux_arm64.tar.gz"
-    sha256 "${LINUX_ARM64_SHA}"
+    url "%s"
+    sha256 "%s"
   end
 
+`
+
+var linuxArm = `
+  if OS.linux? && Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
+    url "%s"
+    sha256 "%s"
+  end
+
+`
+
+var linuxIntel = `
+  if OS.linux? && Hardware::CPU.intel?
+    url "%s"
+    sha256 "%s"
+  end
+
+`
+
+var footer = `
   def install
-    bin.install "jumppad"
+    bin.install "%s"
   end
 end
 `
