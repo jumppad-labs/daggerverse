@@ -36,6 +36,8 @@ func (m *Github) CreateRelease(
 	tag,
 	sha string,
 	// +optional
+	name string,
+	// +optional
 	files *Directory,
 ) error {
 	client, err := m.getClient(ctx)
@@ -43,13 +45,29 @@ func (m *Github) CreateRelease(
 		return err
 	}
 
+	if name == "" {
+		name = tag
+	}
+
 	rel, _, err := client.Repositories.CreateRelease(ctx, owner, repo, &github.RepositoryRelease{
+		Name:            &name,
 		TagName:         &tag,
 		TargetCommitish: &sha,
 	})
 
 	if err != nil {
 		return fmt.Errorf("failed to create release: %w", err)
+	}
+
+	tagMessage := "Create new release"
+	_, _, err = client.Git.CreateTag(ctx, owner, repo, &github.Tag{
+		Tag:     &tag,
+		SHA:     &sha,
+		Message: &tagMessage,
+		Object:  &github.GitObject{SHA: &sha, Type: github.String("commit")},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create tag: %w", err)
 	}
 
 	log.Debug("Created release", "release", *rel.ID)
@@ -87,7 +105,7 @@ func (m *Github) CreateRelease(
 
 // NextVersionFromAssociatedPRLabel returns a the next semantic version based on the presence of a PR label
 // for the given commit SHA.
-// If there are multiple PRs associated with the commit, the highest label from any matching PR will be used
+// If there are multiple PRs associated with the commit, the label from the latest PR will be used.
 //
 // i.e. if the SHA has an associated PR with a label of `major` and the current tag is `1.1.2` the next version will be `2.0.0`
 // if the PR has a tag of `minor` and the current tag is `1.1.2` the next version will be `1.2.0`
@@ -104,9 +122,21 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 	}
 
 	// find any associated PRs with the commit
-	prs, _, err := client.PullRequests.ListPullRequestsWithCommit(ctx, owner, repo, sha, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to get pull requests: %w", err)
+	prs := []*github.PullRequest{}
+	page := 0
+
+	// loop through and get all prs associated with the commit, list might be paged
+	for {
+		p, resp, err := client.PullRequests.ListPullRequestsWithCommit(ctx, owner, repo, sha, &github.ListOptions{Page: page})
+		if err != nil {
+			return "", fmt.Errorf("failed to get pull requests: %w", err)
+		}
+
+		prs = append(prs, p...)
+
+		if resp.NextPage == 0 {
+			break
+		}
 	}
 
 	// no PRS associated with this commit, return an empty string
@@ -115,18 +145,27 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 		return "", nil
 	}
 
-	// get the latest release tag
-	tags, _, err := client.Repositories.ListTags(ctx, owner, repo, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to get releases: %w", err)
-	}
-
 	versions := []*semver.Version{}
-	for _, t := range tags {
-		// check if the tag is a semver, if so add it to the list
-		v, err := semver.NewVersion(*t.Name)
-		if err == nil {
-			versions = append(versions, v)
+	page = 0
+
+	for {
+		// get the latest release tag
+		tags, resp, err := client.Repositories.ListTags(ctx, owner, repo, &github.ListOptions{Page: page})
+		if err != nil {
+			return "", fmt.Errorf("failed to get releases: %w", err)
+		}
+
+		for _, t := range tags {
+			// check if the tag is a semver, if so add it to the list
+			v, err := semver.NewVersion(*t.Name)
+			if err == nil {
+				versions = append(versions, v)
+			}
+		}
+
+		page = resp.NextPage
+		if page == 0 {
+			break
 		}
 	}
 
@@ -142,25 +181,33 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 	}
 
 	bump := ""
+	maxID := 0
 
 	// check the PRs for labels
 	for _, pr := range prs {
-		log.Debug("Checking PR for labels", "pr", *pr.Number)
+		log.Debug("Checking PR for labels", "pr", *pr.Number, "labels", pr.Labels)
 
-		// if there are multiple labels, get the highest one
-		for _, l := range pr.Labels {
-			switch *l.Name {
-			case "major":
-				bump = "major"
-			case "minor":
-				if bump != "major" {
-					bump = "minor"
-				}
-			case "patch":
-				if bump == "" {
-					bump = "minor"
+		// only check the latest closed PR
+		if pr.Number != nil && *pr.Number > maxID {
+			// if there are multiple labels, get the highest one
+			lab := ""
+			for _, l := range pr.Labels {
+				switch *l.Name {
+				case "major":
+					lab = "major"
+				case "minor":
+					if lab != "major" {
+						lab = "minor"
+					}
+				case "patch":
+					if lab == "" {
+						lab = "patch"
+					}
 				}
 			}
+
+			maxID = *pr.Number
+			bump = lab
 		}
 	}
 
@@ -229,6 +276,56 @@ func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *Secret, 
 	return gitHubJWT, nil
 }
 
+// CommitFile commits a file to a repository at the given path
+func (m *Github) CommitFile(
+	ctx context.Context,
+	owner,
+	repo,
+	commiterName,
+	commiterEmail,
+	commitPath,
+	message string,
+	file *File,
+	// +optional
+	branch string,
+) (string, error) {
+	c, err := m.getClient(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	var commitBranch *string
+
+	if branch != "" {
+		commitBranch = &branch
+	}
+
+	outPath := path.Join(os.TempDir(), "file")
+	_, err = file.Export(ctx, outPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to export file: %w", err)
+	}
+
+	data, _ := os.ReadFile(outPath)
+
+	cm, _, err := c.Repositories.UpdateFile(ctx, owner, repo, commitPath,
+		&github.RepositoryContentFileOptions{
+			Content: data,
+			Branch:  commitBranch,
+			Message: &message,
+			Committer: &github.CommitAuthor{
+				Name:  &commiterName,
+				Email: &commiterEmail,
+			},
+		})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to update file: %w", err)
+	}
+
+	return *cm.Commit.SHA, nil
+}
+
 func (m *Github) getClient(ctx context.Context) (*github.Client, error) {
 	if m.Token == nil {
 		log.Error("GitHub token not set")
@@ -261,14 +358,14 @@ func (m *Github) FTestCreateRelease(
 
 	m.Token = token
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "6976eb3f392256c384e87094853853f90c64ca68")
 	if err != nil {
 		return err
 	}
 
 	log.Debug("new version", "version", v)
 
-	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "ee05014ca8f81bf9b2faae7f68d8c537bf7df577", files)
+	return m.CreateRelease(ctx, "jumppad-labs", "daggerverse", v, "6976eb3f392256c384e87094853853f90c64ca68", "", files)
 }
 
 // example: dagger call ftest-bump-version-with-prtag --token=GITHUB_TOKEN
@@ -278,7 +375,7 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 
 	m.Token = token
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "daggerverse", "ee05014ca8f81bf9b2faae7f68d8c537bf7df577")
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "jumppad", "40b23e95b96ff0869b4c7ac3ad7cde6fe68200d8")
 	if err != nil {
 		return v, err
 	}
@@ -286,4 +383,22 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 	log.Debug("new version", "version", v)
 
 	return v, nil
+}
+
+func (m *Github) FTestCommitFile(ctx context.Context, file *File, token *Secret) (string, error) {
+	// enable debug logging
+	log.SetLevel(log.DebugLevel)
+
+	m.Token = token
+
+	return m.CommitFile(ctx,
+		"jumppad-labs",
+		"daggerverse",
+		"jumppad",
+		"hello@jumppad.dev",
+		"test.txt",
+		"commit message",
+		file,
+		"",
+	)
 }

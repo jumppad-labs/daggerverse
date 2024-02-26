@@ -1,23 +1,29 @@
 {
 	"folders": [
-		{
-			"path": ".."
-		},
-		{
-			"path": "../jumppad"
-		},
-		{
-			"path": "../github"
-		},
-		{
-			"path": "../deb"
-		},
-		{
-			"path": "../vault"
-		},
-		{
-			"path": "../notorize"
-		}
-	],
+    {
+      "path": ".."
+    },
+    {
+      "path": "../jumppad"
+    },
+    {
+      "path": "../github"
+    },
+    {
+      "path": "../deb"
+    },
+    {
+      "path": "../vault"
+    },
+    {
+      "path": "../notorize"
+    },
+    {
+      "path": "../brew"
+    },
+    {
+      "path": "../checksum"
+    }
+  ],
 	"settings": {}
 }
