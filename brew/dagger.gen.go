@@ -121,6 +121,9 @@ func (e *ExecError) Unwrap() error {
 // The `CacheVolumeID` scalar type represents an identifier for an object of type CacheVolume.
 type CacheVolumeID string
 
+// The `ChecksumID` scalar type represents an identifier for an object of type Checksum.
+type ChecksumID string
+
 // The `ContainerID` scalar type represents an identifier for an object of type Container.
 type ContainerID string
 
@@ -305,6 +308,77 @@ func (r *CacheVolume) UnmarshalJSON(bs []byte) error {
 		return err
 	}
 	*r = *dag.LoadCacheVolumeFromID(CacheVolumeID(id))
+	return nil
+}
+
+type Checksum struct {
+	q *querybuilder.Selection
+	c graphql.Client
+
+	calculateChecksum *string
+	id                *ChecksumID
+}
+
+// CalculateChecksum will calculate the checksum of a given URL
+func (r *Checksum) CalculateChecksum(ctx context.Context, url string) (string, error) {
+	if r.calculateChecksum != nil {
+		return *r.calculateChecksum, nil
+	}
+	q := r.q.Select("calculateChecksum")
+	q = q.Arg("url", url)
+
+	var response string
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx, r.c)
+}
+
+// A unique identifier for this Checksum.
+func (r *Checksum) ID(ctx context.Context) (ChecksumID, error) {
+	if r.id != nil {
+		return *r.id, nil
+	}
+	q := r.q.Select("id")
+
+	var response ChecksumID
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx, r.c)
+}
+
+// XXX_GraphQLType is an internal function. It returns the native GraphQL type name
+func (r *Checksum) XXX_GraphQLType() string {
+	return "Checksum"
+}
+
+// XXX_GraphQLIDType is an internal function. It returns the native GraphQL type name for the ID of this object
+func (r *Checksum) XXX_GraphQLIDType() string {
+	return "ChecksumID"
+}
+
+// XXX_GraphQLID is an internal function. It returns the underlying type ID
+func (r *Checksum) XXX_GraphQLID(ctx context.Context) (string, error) {
+	id, err := r.ID(ctx)
+	if err != nil {
+		return "", err
+	}
+	return string(id), nil
+}
+
+func (r *Checksum) MarshalJSON() ([]byte, error) {
+	id, err := r.ID(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(id)
+}
+func (r *Checksum) UnmarshalJSON(bs []byte) error {
+	var id string
+	err := json.Unmarshal(bs, &id)
+	if err != nil {
+		return err
+	}
+	*r = *dag.LoadChecksumFromID(ChecksumID(id))
 	return nil
 }
 
@@ -5103,6 +5177,15 @@ func (r *Client) CheckVersionCompatibility(ctx context.Context, version string) 
 	return response, q.Execute(ctx, r.c)
 }
 
+func (r *Client) Checksum() *Checksum {
+	q := r.q.Select("checksum")
+
+	return &Checksum{
+		q: q,
+		c: r.c,
+	}
+}
+
 // ContainerOpts contains options for Client.Container
 type ContainerOpts struct {
 	// DEPRECATED: Use `loadContainerFromID` instead.
@@ -5327,6 +5410,17 @@ func (r *Client) LoadCacheVolumeFromID(id CacheVolumeID) *CacheVolume {
 	q = q.Arg("id", id)
 
 	return &CacheVolume{
+		q: q,
+		c: r.c,
+	}
+}
+
+// Load a Checksum from its ID.
+func (r *Client) LoadChecksumFromID(id ChecksumID) *Checksum {
+	q := r.q.Select("loadChecksumFromID")
+	q = q.Arg("id", id)
+
+	return &Checksum{
 		q: q,
 		c: r.c,
 	}
@@ -6689,10 +6783,90 @@ func main() {
 
 func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName string, inputArgs map[string][]byte) (_ any, err error) {
 	switch parentName {
+	case "Brew":
+		switch fnName {
+		case "Formula":
+			var parent Brew
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				panic(fmt.Errorf("%s: %w", "failed to unmarshal parent object", err))
+			}
+			var homepage string
+			if inputArgs["homepage"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["homepage"]), &homepage)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg homepage", err))
+				}
+			}
+			var version string
+			if inputArgs["version"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["version"]), &version)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg version", err))
+				}
+			}
+			var gitToken string
+			if inputArgs["gitToken"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["gitToken"]), &gitToken)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg gitToken", err))
+				}
+			}
+			var binaryName string
+			if inputArgs["binaryName"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["binaryName"]), &binaryName)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg binaryName", err))
+				}
+			}
+			var darwinX86Url string
+			if inputArgs["darwinX86URL"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["darwinX86URL"]), &darwinX86Url)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg darwinX86URL", err))
+				}
+			}
+			var darwinArm64Url string
+			if inputArgs["darwinArm64URL"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["darwinArm64URL"]), &darwinArm64Url)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg darwinArm64URL", err))
+				}
+			}
+			var linuxX86Url string
+			if inputArgs["linuxX86URL"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["linuxX86URL"]), &linuxX86Url)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg linuxX86URL", err))
+				}
+			}
+			var linuxArm64Url string
+			if inputArgs["linuxArm64URL"] != nil {
+				err = json.Unmarshal([]byte(inputArgs["linuxArm64URL"]), &linuxArm64Url)
+				if err != nil {
+					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg linuxArm64URL", err))
+				}
+			}
+			return nil, (*Brew).Formula(&parent, ctx, homepage, version, gitToken, binaryName, darwinX86Url, darwinArm64Url, linuxX86Url, linuxArm64Url)
+		default:
+			return nil, fmt.Errorf("unknown function %s", fnName)
+		}
 	case "":
 		return dag.Module().
 			WithObject(
-				dag.TypeDef().WithObject("Brew")), nil
+				dag.TypeDef().WithObject("Brew").
+					WithFunction(
+						dag.Function("Formula",
+							dag.TypeDef().WithKind(VoidKind).WithOptional(true)).
+							WithDescription("example usage:").
+							WithArg("homepage", dag.TypeDef().WithKind(StringKind)).
+							WithArg("version", dag.TypeDef().WithKind(StringKind)).
+							WithArg("gitToken", dag.TypeDef().WithKind(StringKind)).
+							WithArg("binaryName", dag.TypeDef().WithKind(StringKind)).
+							WithArg("darwinX86URL", dag.TypeDef().WithKind(StringKind).WithOptional(true)).
+							WithArg("darwinArm64URL", dag.TypeDef().WithKind(StringKind).WithOptional(true)).
+							WithArg("linuxX86URL", dag.TypeDef().WithKind(StringKind).WithOptional(true)).
+							WithArg("linuxArm64URL", dag.TypeDef().WithKind(StringKind).WithOptional(true)))), nil
 	default:
 		return nil, fmt.Errorf("unknown object %s", parentName)
 	}

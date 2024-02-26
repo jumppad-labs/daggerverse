@@ -1,6 +1,12 @@
 {
   "name": "brew",
   "sdk": "go",
+  "dependencies": [
+    {
+      "name": "checksum",
+      "source": "github.com/jumppad-labs/daggerverse/checksum@c343680a3efe55e2e4190ba41d6ce3fd86f87a5a"
+    }
+  ],
   "source": ".",
   "engineVersion": "v0.9.9"
 }

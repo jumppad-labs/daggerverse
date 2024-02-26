@@ -8,6 +8,7 @@ import (
 
 type Brew struct{}
 
+// example usage:
 func (b *Brew) Formula(
 	ctx context.Context,
 	homepage,
@@ -22,7 +23,7 @@ func (b *Brew) Formula(
 	linuxX86URL string,
 	// +optional
 	linuxArm64URL string,
-) error {
+) (string, error) {
 	template := &strings.Builder{}
 
 	// Write header
@@ -31,9 +32,9 @@ func (b *Brew) Formula(
 
 	// do we need to add darwin intel
 	if darwinX86URL != "" {
-		checksum, err := b.calculateChecksum(ctx, darwinX86URL)
+		checksum, err := dag.Checksum().CalculateChecksum(ctx, darwinX86URL)
 		if err != nil {
-			return fmt.Errorf("failed to calculate checksum: %w", err)
+			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
 		h = fmt.Sprintf(darwinIntel, darwinX86URL, checksum)
@@ -41,9 +42,9 @@ func (b *Brew) Formula(
 	}
 
 	if darwinArm64URL != "" {
-		checksum, err := b.calculateChecksum(ctx, darwinArm64URL)
+		checksum, err := dag.Checksum().CalculateChecksum(ctx, darwinArm64URL)
 		if err != nil {
-			return fmt.Errorf("failed to calculate checksum: %w", err)
+			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
 		h = fmt.Sprintf(darwinArm, darwinArm64URL, checksum)
@@ -51,9 +52,9 @@ func (b *Brew) Formula(
 	}
 
 	if linuxX86URL != "" {
-		checksum, err := b.calculateChecksum(ctx, linuxArm64URL)
+		checksum, err := dag.Checksum().CalculateChecksum(ctx, linuxArm64URL)
 		if err != nil {
-			return fmt.Errorf("failed to calculate checksum: %w", err)
+			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
 		h = fmt.Sprintf(linuxIntel, linuxX86URL, checksum)
@@ -61,9 +62,9 @@ func (b *Brew) Formula(
 	}
 
 	if linuxArm64URL != "" {
-		checksum, err := b.calculateChecksum(ctx, linuxArm64URL)
+		checksum, err := dag.Checksum().CalculateChecksum(ctx, linuxArm64URL)
 		if err != nil {
-			return fmt.Errorf("failed to calculate checksum: %w", err)
+			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
 		h = fmt.Sprintf(linuxArm, linuxArm64URL, checksum)
@@ -76,7 +77,7 @@ func (b *Brew) Formula(
 
 	// Commit the template
 
-	return nil
+	return template.String(), nil
 }
 
 var header = `
