@@ -9,7 +9,7 @@ import (
 type Checksum struct{}
 
 // CalculateChecksum will calculate the checksum of a given URL
-func (c *Checksum) CalculateFromURL(ctx context.Context, url string) (string, error) {
+func (c *Checksum) CalculateFromUrl(ctx context.Context, url string) (string, error) {
 	str, err := dag.Container().
 		From("alpine:latest").
 		WithExec([]string{"apk", "add", "curl"}).
