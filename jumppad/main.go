@@ -44,7 +44,7 @@ func (m *Jumppad) WithFile(file *File) *Jumppad {
 	return m
 }
 
-// WithCache uses a specifica cache volume for docker or podman server
+// WithCache uses a specifies cache volume for docker or podman server
 func (m *Jumppad) WithCache(cache *CacheVolume) *Jumppad {
 	m.Cache = cache
 
@@ -57,7 +57,6 @@ func (m *Jumppad) TestBlueprint(
 	ctx context.Context,
 	src *Directory,
 	// +optional
-	// +default=/
 	workingDirectory string,
 	// +optional
 	// +default=amd64
