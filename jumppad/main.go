@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
+
+	"github.com/charmbracelet/log"
 )
 
 type Jumppad struct {
@@ -26,7 +29,7 @@ func (m *Jumppad) WithVersion(version, architecture string) *Jumppad {
 		WithWorkdir("/setup").
 		WithExec([]string{
 			"wget",
-			fmt.Sprintf("https://github.com/jumppad-labs/jumppad/releases/download/v%s/jumppad_%s_linux_%s.tar.gz", version, version, jumppadArch),
+			fmt.Sprintf("https://github.com/jumppad-labs/jumppad/releases/download/%s/jumppad_%s_linux_%s.tar.gz", version, version, jumppadArch),
 			"-O", "./jumppad.tar.gz",
 		}).
 		WithExec([]string{"tar", "-xzf", "./jumppad.tar.gz"}).
@@ -54,6 +57,9 @@ func (m *Jumppad) TestBlueprint(
 	ctx context.Context,
 	src *Directory,
 	// +optional
+	// +default=/
+	workingDirectory string,
+	// +optional
 	// +default=amd64
 	architecture,
 	// +optional
@@ -68,48 +74,83 @@ func (m *Jumppad) TestBlueprint(
 
 	testBase = testBase.WithFile("/usr/local/bin/jumppad", m.Binary)
 
-	_, err := testBase.
+	wd := path.Join("/test/src", workingDirectory)
+
+	ctn, err := testBase.
 		WithEntrypoint([]string{"/scripts/entrypoint.sh"}).
 		WithDirectory("/test/src", src).
-		WithWorkdir("/test/src").
+		WithWorkdir(wd).
 		WithExec([]string{"jumppad", "test", "."}, ContainerWithExecOpts{InsecureRootCapabilities: true}).
 		Sync(ctx)
+
+	out, _ := ctn.Stderr(ctx)
+	log.Debug(out)
+
+	out, _ = ctn.Stdout(ctx)
+	log.Debug(out)
 
 	return err
 }
 
 // TestBlueprintWithVersion tests a blueprint with a specific version of jumppad installed from GitHub releases
 //
-// example usage: "dagger call test --src ./examples/multiple_k3s_clusters --version v0.5.59"
+// example usage: "dagger call test-blueprint-with-version --src ./examples/multiple_k3s_clusters --version v0.5.59"
 func (m *Jumppad) TestBlueprintWithVersion(
 	ctx context.Context,
 	src *Directory,
 	version string,
 	// +optional
 	// +default=amd64
+	workingDirectory string,
+	// +optional
+	// +default=/
 	architecture string,
 	// +optional
 	// +default=docker
 	runtime string,
+	// +optional
+	cache string,
 ) error {
+	log.SetLevel(log.DebugLevel)
+
 	// fetch the binary
 	m.WithVersion(version, architecture)
-	return m.TestBlueprint(ctx, src, architecture, runtime)
+
+	if cache != "" {
+		m.WithCache(dag.CacheVolume(cache))
+	}
+
+	return m.TestBlueprint(ctx, src, workingDirectory, architecture, runtime)
 }
 
+// TestBlueprintWithVersion tests a blueprint with an existing binary
+//
+// example usage: "dagger call test-blueprint-with-binary --src ./examples/multiple_k3s_clusters --binary $(which jumppad)
 func (m *Jumppad) TestBlueprintWithBinary(
 	ctx context.Context,
 	src *Directory,
 	binary *File,
+	// +optional
+	// +default=/
+	workingDirectory string,
 	// +optional
 	// +default=amd64
 	architecture string,
 	// +optional
 	// +default=docker
 	runtime string,
+	// +optional
+	cache string,
 ) error {
+	log.SetLevel(log.DebugLevel)
+
 	m.WithFile(binary)
-	return m.TestBlueprint(ctx, src, architecture, runtime)
+
+	if cache != "" {
+		m.WithCache(dag.CacheVolume(cache))
+	}
+
+	return m.TestBlueprint(ctx, src, workingDirectory, architecture, runtime)
 }
 
 // dockerBase creates a Docker engine in docker container
