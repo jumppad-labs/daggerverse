@@ -103,7 +103,6 @@ func (m *Jumppad) TestBlueprintWithVersion(
 	// +default=amd64
 	workingDirectory string,
 	// +optional
-	// +default=/
 	architecture string,
 	// +optional
 	// +default=docker
@@ -131,7 +130,6 @@ func (m *Jumppad) TestBlueprintWithBinary(
 	src *Directory,
 	binary *File,
 	// +optional
-	// +default=/
 	workingDirectory string,
 	// +optional
 	// +default=amd64
