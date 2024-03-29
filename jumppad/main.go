@@ -15,7 +15,12 @@ type Jumppad struct {
 }
 
 // WithVersion installs a specific version of jumppad from GitHub releases
-func (m *Jumppad) WithVersion(version, architecture string) *Jumppad {
+func (m *Jumppad) WithVersion(
+	// the version of jumppad to install
+	version,
+	// the architecture to install jumppad for, i.e. amd64, arm64.
+	architecture string,
+) *Jumppad {
 	// remove the v if it exists
 	version = strings.TrimPrefix(version, "v")
 
@@ -39,13 +44,19 @@ func (m *Jumppad) WithVersion(version, architecture string) *Jumppad {
 }
 
 // WithFile installs a specific version of jumppad from the provided file
-func (m *Jumppad) WithFile(file *File) *Jumppad {
+func (m *Jumppad) WithFile(
+	// the file to use as the jumppad binary
+	file *File,
+) *Jumppad {
 	m.Binary = file
 	return m
 }
 
 // WithCache uses a specifies cache volume for docker or podman server
-func (m *Jumppad) WithCache(cache *CacheVolume) *Jumppad {
+func (m *Jumppad) WithCache(
+	// the cache volume to use
+	cache *CacheVolume,
+) *Jumppad {
 	m.Cache = cache
 
 	return m
@@ -55,14 +66,18 @@ func (m *Jumppad) WithCache(cache *CacheVolume) *Jumppad {
 // this method is designed to be used with the Dagger API not the CLI
 func (m *Jumppad) TestBlueprint(
 	ctx context.Context,
+	// the directory containing the blueprint to test
 	src *Directory,
+	// the working directory to run the test in, this is relative to the src directory
 	// +optional
 	workingDirectory string,
+	// the architecture to test the blueprint on, i.e. amd64, arm64.
 	// +optional
-	// +default=amd64
+	// +default="amd64"
 	architecture,
+	// the runtime to use, either docker or podman
 	// +optional
-	// +default=docker
+	// +default="docker"
 	runtime string) error {
 	var testBase *Container
 	if runtime == "docker" {
@@ -96,16 +111,22 @@ func (m *Jumppad) TestBlueprint(
 // example usage: "dagger call test-blueprint-with-version --src ./examples/multiple_k3s_clusters --version v0.5.59"
 func (m *Jumppad) TestBlueprintWithVersion(
 	ctx context.Context,
+	// the directory containing the blueprint to test
 	src *Directory,
+	// the version of jumppad to install
 	version string,
+	// the working directory to run the test in, this is relative to the src directory
 	// +optional
-	// +default=amd64
+	// +default="amd64"
 	workingDirectory string,
+	// the architecture to test the blueprint on, i.e. amd64, arm64.
 	// +optional
 	architecture string,
+	// the runtime to use, either docker or podman
 	// +optional
-	// +default=docker
+	// +default="docker"
 	runtime string,
+	// the cache volume to use
 	// +optional
 	cache string,
 ) error {
@@ -126,16 +147,22 @@ func (m *Jumppad) TestBlueprintWithVersion(
 // example usage: "dagger call test-blueprint-with-binary --src ./examples/multiple_k3s_clusters --binary $(which jumppad)
 func (m *Jumppad) TestBlueprintWithBinary(
 	ctx context.Context,
+	// the directory containing the blueprint to test
 	src *Directory,
+	// the path to the jumppad binary
 	binary *File,
+	// the working directory to run the test in, this is relative to the src directory
 	// +optional
 	workingDirectory string,
+	// the architecture to test the blueprint on, i.e. amd64, arm64.
 	// +optional
-	// +default=amd64
+	// +default="amd64"
 	architecture string,
+	// the runtime to use, either docker or podman
 	// +optional
-	// +default=docker
+	// +default="docker"
 	runtime string,
+
 	// +optional
 	cache string,
 ) error {
