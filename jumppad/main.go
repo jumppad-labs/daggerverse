@@ -217,7 +217,7 @@ func (m *Jumppad) podmanBase(ctx context.Context, architecture string) *Containe
 		From("quay.io/podman/stable:v4.8.3").
 		WithoutEntrypoint().
 		WithUser("root").
-		WithExec([]string{"dnf", "install", "-y", "git"}).
+		WithExec([]string{"dnf", "install", "-y", "git", "unzip"}).
 		WithEnvVariable("DOCKER_TLS_CERTDIR", "").                       // disable TLS
 		WithEnvVariable("DOCKER_HOST", "unix:///run/podman/podman.sock") // add the podman sock
 
