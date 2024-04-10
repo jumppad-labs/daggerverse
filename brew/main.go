@@ -35,7 +35,7 @@ func (b *Brew) Formula(
 
 	// do we need to add darwin intel
 	if darwinX86URL != "" {
-		checksum, err := dag.Checksum().CalculateChecksum(ctx, darwinX86URL)
+		checksum, err := dag.Checksum().CalculateFromURL(ctx, darwinX86URL)
 		if err != nil {
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
@@ -46,7 +46,7 @@ func (b *Brew) Formula(
 	}
 
 	if darwinArm64URL != "" {
-		checksum, err := dag.Checksum().CalculateChecksum(ctx, darwinArm64URL)
+		checksum, err := dag.Checksum().CalculateFromURL(ctx, darwinArm64URL)
 		if err != nil {
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
@@ -57,7 +57,7 @@ func (b *Brew) Formula(
 	}
 
 	if linuxX86URL != "" {
-		checksum, err := dag.Checksum().CalculateChecksum(ctx, linuxX86URL)
+		checksum, err := dag.Checksum().CalculateFromURL(ctx, linuxX86URL)
 		if err != nil {
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
@@ -67,7 +67,7 @@ func (b *Brew) Formula(
 	}
 
 	if linuxArm64URL != "" {
-		checksum, err := dag.Checksum().CalculateChecksum(ctx, linuxArm64URL)
+		checksum, err := dag.Checksum().CalculateFromURL(ctx, linuxArm64URL)
 		if err != nil {
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
