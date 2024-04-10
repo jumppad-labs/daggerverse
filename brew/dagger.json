@@ -3,12 +3,12 @@
   "sdk": "go",
   "dependencies": [
     {
-      "name": "github",
-      "source": "github.com/jumppad-labs/daggerverse/github@351e2ff5105e7d4240cb886db5746e89699b3e25"
+      "name": "checksum",
+      "source": "github.com/jumppad-labs/daggerverse/checksum@1ee5ef843939f88d2da4fadf8ad3ffb2c3d6b01d"
     },
     {
-      "name": "checksum",
-      "source": "github.com/jumppad-labs/daggerverse/checksum@351e2ff5105e7d4240cb886db5746e89699b3e25"
+      "name": "github",
+      "source": "github.com/jumppad-labs/daggerverse/github@351e2ff5105e7d4240cb886db5746e89699b3e25"
     }
   ],
   "source": ".",
