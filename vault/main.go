@@ -49,7 +49,7 @@ func (v *Vault) WithUserpassAuth(
 	username string,
 	password *Secret,
 	// +optional
-	// +default=userpass
+	// +default="userpass"
 	path string,
 ) *Vault {
 	pass, _ := password.Plaintext(ctx)
@@ -68,7 +68,7 @@ func (v *Vault) WithJWTAuth(
 	token *Secret,
 	role string,
 	// +optional
-	// +default=jwt
+	// +default="jwt"
 	path string,
 ) *Vault {
 	jwt, _ := token.Plaintext(ctx)

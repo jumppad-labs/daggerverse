@@ -393,7 +393,7 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 
 	m.Token = token
 
-	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "jumppad", "40b23e95b96ff0869b4c7ac3ad7cde6fe68200d8")
+	v, err := m.NextVersionFromAssociatedPRLabel(ctx, "jumppad-labs", "jumppad", "18e75c8517831bc29f5ce25528787c239ec670c1")
 	if err != nil {
 		return v, err
 	}

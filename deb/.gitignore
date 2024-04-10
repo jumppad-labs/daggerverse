@@ -4,3 +4,4 @@
 /example_package_contents/bin
 /example_app/bin
 *.deb
+/internal/dagger

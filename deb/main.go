@@ -17,7 +17,7 @@ func (m *Deb) Build(
 	maintainer string,
 	description string,
 	// +optional
-	// +default=unknown
+	// +default="unknown"
 	section string,
 	// +optional
 	priority string,
