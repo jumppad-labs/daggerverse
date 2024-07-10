@@ -244,7 +244,7 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 //	    contents: read
 func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *Secret, actionsTokenURL string, audience string) (string, error) {
 	if audience != "" {
-		actionsTokenURL = fmt.Sprintf("%s?audience=%s", actionsTokenURL, audience)
+		actionsTokenURL = fmt.Sprintf("%s&audience=%s", actionsTokenURL, audience)
 	}
 	rq, err := http.NewRequest(http.MethodGet, actionsTokenURL, nil)
 	if err != nil {
