@@ -56,7 +56,6 @@ func (m *Github) CreateRelease(
 		TagName:         &tag,
 		TargetCommitish: &sha,
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to create release: %w", err)
 	}
@@ -243,7 +242,10 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 //	  permissions:
 //	    id-token: write
 //	    contents: read
-func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *Secret, actionsTokenURL string) (string, error) {
+func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *Secret, actionsTokenURL string, audience string) (string, error) {
+	if audience != "" {
+		actionsTokenURL = fmt.Sprintf("%s&audience=%s", actionsTokenURL, audience)
+	}
 	rq, err := http.NewRequest(http.MethodGet, actionsTokenURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("unable to create request: %w", err)
@@ -336,7 +338,6 @@ func (m *Github) CommitFile(
 				Email: &commiterEmail,
 			},
 		})
-
 	if err != nil {
 		return "", fmt.Errorf("failed to update file: %w", err)
 	}
