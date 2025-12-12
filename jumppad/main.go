@@ -6,12 +6,14 @@ import (
 	"path"
 	"strings"
 
+	"main/internal/dagger"
+
 	"github.com/charmbracelet/log"
 )
 
 type Jumppad struct {
-	Binary *File
-	Cache  *CacheVolume
+	Binary *dagger.File
+	Cache  *dagger.CacheVolume
 }
 
 // WithVersion installs a specific version of jumppad from GitHub releases
@@ -45,8 +47,9 @@ func (m *Jumppad) WithVersion(
 
 // WithFile installs a specific version of jumppad from the provided file
 func (m *Jumppad) WithFile(
+	ctx context.Context,
 	// the file to use as the jumppad binary
-	file *File,
+	file *dagger.File,
 ) *Jumppad {
 	m.Binary = file
 	return m
@@ -55,7 +58,7 @@ func (m *Jumppad) WithFile(
 // WithCache uses a specifies cache volume for docker or podman server
 func (m *Jumppad) WithCache(
 	// the cache volume to use
-	cache *CacheVolume,
+	cache *dagger.CacheVolume,
 ) *Jumppad {
 	m.Cache = cache
 
@@ -67,7 +70,7 @@ func (m *Jumppad) WithCache(
 func (m *Jumppad) TestBlueprint(
 	ctx context.Context,
 	// the directory containing the blueprint to test
-	src *Directory,
+	src *dagger.Directory,
 	// the working directory to run the test in, this is relative to the src directory
 	// +optional
 	workingDirectory string,
@@ -79,7 +82,7 @@ func (m *Jumppad) TestBlueprint(
 	// +optional
 	// +default="docker"
 	runtime string) error {
-	var testBase *Container
+	var testBase *dagger.Container
 	if runtime == "docker" {
 		testBase = m.dockerBase(ctx, architecture)
 	} else {
@@ -94,7 +97,7 @@ func (m *Jumppad) TestBlueprint(
 		WithEntrypoint([]string{"/scripts/entrypoint.sh"}).
 		WithDirectory("/test/src", src).
 		WithWorkdir(wd).
-		WithExec([]string{"jumppad", "test", "."}, ContainerWithExecOpts{InsecureRootCapabilities: true}).
+		WithExec([]string{"jumppad", "test", "."}, dagger.ContainerWithExecOpts{UseEntrypoint: true, InsecureRootCapabilities: true}).
 		Sync(ctx)
 
 	out, _ := ctn.Stderr(ctx)
@@ -112,7 +115,7 @@ func (m *Jumppad) TestBlueprint(
 func (m *Jumppad) TestBlueprintWithVersion(
 	ctx context.Context,
 	// the directory containing the blueprint to test
-	src *Directory,
+	src *dagger.Directory,
 	// the version of jumppad to install
 	version string,
 	// the working directory to run the test in, this is relative to the src directory
@@ -148,9 +151,9 @@ func (m *Jumppad) TestBlueprintWithVersion(
 func (m *Jumppad) TestBlueprintWithBinary(
 	ctx context.Context,
 	// the directory containing the blueprint to test
-	src *Directory,
+	src *dagger.Directory,
 	// the path to the jumppad binary
-	binary *File,
+	binary *dagger.File,
 	// the working directory to run the test in, this is relative to the src directory
 	// +optional
 	workingDirectory string,
@@ -168,7 +171,7 @@ func (m *Jumppad) TestBlueprintWithBinary(
 ) error {
 	log.SetLevel(log.DebugLevel)
 
-	m.WithFile(binary)
+	m.WithFile(ctx, binary)
 
 	if cache != "" {
 		m.WithCache(dag.CacheVolume(cache))
@@ -178,13 +181,13 @@ func (m *Jumppad) TestBlueprintWithBinary(
 }
 
 // dockerBase creates a Docker engine in docker container
-func (m *Jumppad) dockerBase(ctx context.Context, architecture string) *Container {
-	testBase := dag.Container(ContainerOpts{Platform: Platform(fmt.Sprintf("linux/%s", architecture))}).
-		From("ghcr.io/jumppad-labs/dind:v1.0.0").
+func (m *Jumppad) dockerBase(ctx context.Context, architecture string) *dagger.Container {
+	testBase := dag.Container(dagger.ContainerOpts{Platform: dagger.Platform(fmt.Sprintf("linux/%s", architecture))}).
+		From("ghcr.io/jumppad-labs/dind:v1.2.0").
 		WithoutEntrypoint().
 		WithUser("root").
 		WithExec([]string{"apt", "update"}).
-		WithExec([]string{"apt", "install", "-y", "git"}).
+		WithExec([]string{"apt", "install", "-y", "git", "kmod"}).
 		WithEnvVariable("DOCKER_TLS_CERTDIR", "") // disable TLS
 
 	if m.Cache != nil {
@@ -192,9 +195,15 @@ func (m *Jumppad) dockerBase(ctx context.Context, architecture string) *Containe
 	}
 
 	return testBase.
-		WithNewFile("/scripts/entrypoint.sh", ContainerWithNewFileOpts{Contents: dnidEntrypoint}).
+		WithNewFile("/etc/docker/daemon.json", dockerConfig).
+		WithNewFile("/scripts/entrypoint.sh", dnidEntrypoint).
 		WithExec([]string{"chmod", "+x", "/scripts/entrypoint.sh"})
 }
+
+var dockerConfig = `{
+  "storage-driver": "vfs"
+}
+`
 
 var dnidEntrypoint = `#!/bin/bash
 set -e
@@ -212,12 +221,12 @@ $@
 `
 
 // podmanBase creates a Podman engine in docker container
-func (m *Jumppad) podmanBase(ctx context.Context, architecture string) *Container {
-	testBase := dag.Container(ContainerOpts{Platform: Platform(fmt.Sprintf("linux/%s", architecture))}).
-		From("quay.io/podman/stable:v4.8.3").
+func (m *Jumppad) podmanBase(ctx context.Context, architecture string) *dagger.Container {
+	testBase := dag.Container(dagger.ContainerOpts{Platform: dagger.Platform(fmt.Sprintf("linux/%s", architecture))}).
+		From("quay.io/podman/stable:v5.7.0").
 		WithoutEntrypoint().
 		WithUser("root").
-		WithExec([]string{"dnf", "install", "-y", "git", "unzip"}).
+		WithExec([]string{"dnf", "install", "-y", "git", "unzip", "iptables"}).
 		WithEnvVariable("DOCKER_TLS_CERTDIR", "").                       // disable TLS
 		WithEnvVariable("DOCKER_HOST", "unix:///run/podman/podman.sock") // add the podman sock
 
@@ -226,8 +235,8 @@ func (m *Jumppad) podmanBase(ctx context.Context, architecture string) *Containe
 	}
 
 	return testBase.
-		WithNewFile("/etc/containers/containers.conf", ContainerWithNewFileOpts{Contents: podmanConf}).
-		WithNewFile("/scripts/entrypoint.sh", ContainerWithNewFileOpts{Contents: podmanEntrypoint}).
+		WithNewFile("/etc/containers/containers.conf", podmanConf).
+		WithNewFile("/scripts/entrypoint.sh", podmanEntrypoint).
 		WithExec([]string{"chmod", "+x", "/scripts/entrypoint.sh"})
 }
 
@@ -240,7 +249,7 @@ sleep 10
 chmod +x /run/podman
 chmod 777 /run/podman/podman.sock
 
-# Loop until 'docker version' exits with 0.
+# Loop until 'podman version' exits with 0.
 until podman version > /dev/null 2>&1
 do
   sleep 1
@@ -261,4 +270,6 @@ log_driver = "k8s-file"
 cgroup_manager = "cgroupfs"
 events_logger="file"
 runtime="crun"
+[network]
+firewall_driver="iptables"
 `

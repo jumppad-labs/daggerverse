@@ -1,5 +1,5 @@
 variable "consul_version" {
-  default = "1.10.6"
+  default = "1.22"
 }
 
 variable "envoy_version" {
@@ -43,14 +43,14 @@ resource "container" "consul_disabled" {
   disabled = true
 
   image {
-    name = "consul:${variable.consul_version}"
+    name = "hashicorp/consul:${variable.consul_version}"
   }
 }
 
 
 resource "container" "consul_capabilities" {
   image {
-    name = "consul:${variable.consul_version}"
+    name = "hashicorp/consul:${variable.consul_version}"
   }
 
   capabilities {
@@ -63,7 +63,7 @@ resource "container" "consul_capabilities" {
 
 resource "container" "consul_labels" {
   image {
-    name = "consul:${variable.consul_version}"
+    name = "hashicorp/consul:${variable.consul_version}"
   }
 
   labels = {
@@ -73,7 +73,7 @@ resource "container" "consul_labels" {
 
 resource "container" "consul" {
   image {
-    name = "consul:${variable.consul_version}"
+    name = "hashicorp/consul:${variable.consul_version}"
   }
 
   command = ["consul", "agent", "-config-file", "/config/config.hcl"]
@@ -112,6 +112,11 @@ resource "container" "consul" {
     memory = 1024
   }
 
+  port {
+    local  = 8507
+    remote = 8507
+  }
+
   port_range {
     range       = "8500-8502"
     enable_host = true
@@ -145,6 +150,10 @@ resource "sidecar" "envoy" {
 
   image {
     name = "envoyproxy/envoy:v${variable.envoy_version}"
+  }
+
+  environment = {
+    PORT = "${resource.container.consul.port.0.local}"
   }
 
   command = ["tail", "-f", "/dev/null"]
