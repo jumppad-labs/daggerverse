@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"main/internal/dagger"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ func (b *Brew) Formula(
 	commiterName,
 	commiterEmail,
 	binaryName string,
-	gitToken *Secret,
+	gitToken *dagger.Secret,
 	// +optional
 	darwinX86URL string,
 	// +optional
