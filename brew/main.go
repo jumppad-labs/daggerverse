@@ -62,7 +62,8 @@ func (b *Brew) Formula(
 			return "", fmt.Errorf("failed to calculate checksum: %w", err)
 		}
 
-		h = fmt.Sprintf(linuxIntel, linuxX86URL, checksum)
+		parts := strings.Split(checksum, " ")
+		h = fmt.Sprintf(linuxIntel, linuxX86URL, parts[0])
 		template.WriteString(h)
 	}
 
