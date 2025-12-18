@@ -8,7 +8,7 @@
     {
       "name": "checksum",
       "source": "https://github.com/jumppad-labs/daggerverse/checksum@main",
-      "pin": "171920d67f46cd00f05cb5acaad667b886daab23"
+      "pin": "45014437f1e4b2474e632a7daf14e5aa8744680f"
     },
     {
       "name": "github",

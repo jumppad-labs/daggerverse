@@ -236,7 +236,7 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 					panic(fmt.Errorf("%s: %w", "failed to unmarshal input arg binaryName", err))
 				}
 			}
-			var gitToken any
+			var gitToken *dagger.Secret
 			if inputArgs["gitToken"] != nil {
 				err = json.Unmarshal([]byte(inputArgs["gitToken"]), &gitToken)
 				if err != nil {
