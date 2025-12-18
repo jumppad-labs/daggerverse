@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"main/internal/dagger"
 	"net/http"
 	"os"
 	"path"
@@ -19,11 +20,11 @@ import (
 )
 
 type Github struct {
-	Token *Secret
+	Token *dagger.Secret
 }
 
 // WithToken sets the GithHub token for any opeations that require it
-func (m *Github) WithToken(token *Secret) *Github {
+func (m *Github) WithToken(token *dagger.Secret) *Github {
 	m.Token = token
 
 	return m
@@ -40,7 +41,7 @@ func (m *Github) CreateRelease(
 	// +optional
 	name string,
 	// +optional
-	files *Directory,
+	files *dagger.Directory,
 ) error {
 	client, err := m.getClient(ctx)
 	if err != nil {
@@ -243,7 +244,7 @@ func (m *Github) NextVersionFromAssociatedPRLabel(
 //	  permissions:
 //	    id-token: write
 //	    contents: read
-func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *Secret, actionsTokenURL string) (string, error) {
+func (m *Github) GetOIDCToken(ctx context.Context, actionsRequestToken *dagger.Secret, actionsTokenURL string) (string, error) {
 	rq, err := http.NewRequest(http.MethodGet, actionsTokenURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("unable to create request: %w", err)
@@ -287,7 +288,7 @@ func (m *Github) CommitFile(
 	commiterEmail,
 	commitPath,
 	message string,
-	file *File,
+	file *dagger.File,
 	// +optional
 	branch string,
 ) (string, error) {
@@ -367,9 +368,9 @@ func (m *Github) getClient(ctx context.Context) (*github.Client, error) {
 // example: dagger call ftest-create-release --token=GITHUB_TOKEN --files=./testfiles
 func (m *Github) FTestCreateRelease(
 	ctx context.Context,
-	token *Secret,
+	token *dagger.Secret,
 	// +optional
-	files *Directory,
+	files *dagger.Directory,
 ) error {
 	// enable debug logging
 	log.SetLevel(log.DebugLevel)
@@ -387,7 +388,7 @@ func (m *Github) FTestCreateRelease(
 }
 
 // example: dagger call ftest-bump-version-with-prtag --token=GITHUB_TOKEN
-func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (string, error) {
+func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *dagger.Secret) (string, error) {
 	// enable debug logging
 	log.SetLevel(log.DebugLevel)
 
@@ -403,7 +404,7 @@ func (m *Github) FTestBumpVersionWithPRTag(ctx context.Context, token *Secret) (
 	return v, nil
 }
 
-func (m *Github) FTestCommitFile(ctx context.Context, token *Secret) (string, error) {
+func (m *Github) FTestCommitFile(ctx context.Context, token *dagger.Secret) (string, error) {
 	// enable debug logging
 	log.SetLevel(log.DebugLevel)
 
