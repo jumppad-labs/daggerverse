@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"main/internal/dagger"
 	"strings"
 )
 
@@ -28,7 +29,7 @@ func (c *Checksum) CalculateFromUrl(ctx context.Context, url string) (string, er
 	return strings.TrimSpace(str), nil
 }
 
-func (c *Checksum) CalculateFromFile(ctx context.Context, file *File) (string, error) {
+func (c *Checksum) CalculateFromFile(ctx context.Context, file *dagger.File) (string, error) {
 	str, err := dag.Container().
 		From("alpine:latest").
 		WithFile("/jumppad", file).
