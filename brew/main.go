@@ -30,8 +30,11 @@ func (b *Brew) Formula(
 ) (string, error) {
 	template := &strings.Builder{}
 
-	// Write header
-	h := fmt.Sprintf(header, homepage, version)
+	// Write header. Homebrew requires the class name to match the file name
+	// camel-cased, so derive it from the binary name, e.g. "spektacular" ->
+	// "Spektacular" and "my-tool" -> "MyTool".
+	className := classNameFromBinary(binaryName)
+	h := fmt.Sprintf(header, className, homepage, version)
 	template.WriteString(h)
 
 	// do we need to add darwin intel
@@ -110,11 +113,28 @@ var header = `
 # typed: false
 # frozen_string_literal: true
 
-class Jumppad < Formula
+class %s < Formula
   desc ""
   homepage "%s"
   version "%s"
 `
+
+// classNameFromBinary converts a binary name into a Homebrew formula class
+// name by camel-casing on "-" and "_" separators, e.g. "spektacular" ->
+// "Spektacular" and "my-tool" -> "MyTool".
+func classNameFromBinary(binaryName string) string {
+	parts := strings.FieldsFunc(binaryName, func(r rune) bool {
+		return r == '-' || r == '_'
+	})
+
+	className := &strings.Builder{}
+	for _, p := range parts {
+		className.WriteString(strings.ToUpper(p[:1]))
+		className.WriteString(p[1:])
+	}
+
+	return className.String()
+}
 
 var darwinIntel = `
   if OS.mac? && Hardware::CPU.intel?
